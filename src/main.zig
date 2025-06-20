@@ -1,6 +1,8 @@
 const builtin = @import("builtin");
 const native_os = builtin.os.tag;
 const std = @import("std");
+const Yaml = @import("yaml").Yaml;
+const Workflow = @import("Workflow.zig");
 
 var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
 
@@ -70,4 +72,19 @@ pub fn main() !void {
     }
 
     defer if (workflow_file) |wf| wf.close();
+
+    const metadata = try workflow_file.?.metadata();
+
+    const wf_source = try workflow_file.?.reader().readAllAlloc(gpa, metadata.size());
+    defer gpa.free(wf_source);
+
+    var yaml: Yaml = .{ .source = wf_source };
+    defer yaml.deinit(gpa);
+
+    try yaml.load(gpa);
+
+    var wf = try yaml.parse(gpa, Workflow);
+    defer wf.deinit(gpa);
+
+    std.debug.print("{}\n", .{wf});
 }
