@@ -1,7 +1,12 @@
 const std = @import("std");
 const Self = @This();
 
-method: std.http.Method = .PUT,
+pub const Method = enum {
+    put,
+    post,
+};
+
+method: Method,
 
 pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     _ = self;
