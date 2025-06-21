@@ -37,8 +37,8 @@
     // internet connectivity.
     .dependencies = .{
         .yaml = .{
-            .url = "https://github.com/PipeletCloud/zig-yaml/archive/a1d7fb042c970d7330c975fc3702ae44109a96d9.tar.gz",
-            .hash = "zig_yaml-0.1.0-C1161pqWAgDbHE2g01Ufezngai7CehDPDOoej_qv6i2Q",
+            .url = "https://github.com/PipeletCloud/zig-yaml/archive/9a6926443ad3879ac0c147c2c68b0d1dadb2135b.tar.gz",
+            .hash = "zig_yaml-0.1.0-C1161piWAgDpeXlIH32h9rEXCzWyjGx0ypxR0XwdAf6Q",
         },
     },
     .paths = .{

@@ -5,8 +5,15 @@ triggers:
       when: "* * * * *"
   - http:
       request:
+        id: example_http
         method: "GET"
         url: "https://example.com"
         when:
           changed:
             delay: 12000
+
+graph:
+  - awk:
+      input:
+        trigger: example_http
+      script: "{print}"

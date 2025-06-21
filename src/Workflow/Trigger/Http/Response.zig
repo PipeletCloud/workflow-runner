@@ -1,6 +1,16 @@
 const std = @import("std");
 const Self = @This();
 
+pub const Output = struct {
+    target: []const u8,
+    body: []const u8,
+
+    pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
+        alloc.free(self.target);
+        alloc.free(self.body);
+    }
+};
+
 pub const When = union(enum) {
     changed: Changed,
     cron: []const u8,
@@ -31,12 +41,16 @@ pub const When = union(enum) {
     pub const parseYaml = @import("../../../yaml.zig").UnionEnum(When);
 };
 
+id: ?[]const u8,
 method: ?[]const u8,
 endpoint: []const u8,
 when: ?When,
 
 pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
+    if (self.id) |id| alloc.free(id);
     if (self.method) |method| alloc.free(method);
+
     alloc.free(self.endpoint);
+
     if (self.when) |when| when.deinit(alloc);
 }
