@@ -1,11 +1,19 @@
 const std = @import("std");
+const xev = @import("xev");
 const Self = @This();
 
 pub const Output = struct {
     body: []const u8,
 
-    pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
+    pub fn deinit(self: *Output, alloc: std.mem.Allocator) void {
         alloc.free(self.body);
+    }
+};
+
+pub const Runner = struct {
+    pub fn deinit(self: *Runner, alloc: std.mem.Allocator) void {
+        _ = self;
+        _ = alloc;
     }
 };
 
@@ -49,4 +57,11 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     alloc.free(self.url);
 
     if (self.when) |when| when.deinit(alloc);
+}
+
+pub fn createRunner(self: *const Self, alloc: std.mem.Allocator, loop: *xev.Loop) !*Runner {
+    _ = self;
+    _ = alloc;
+    _ = loop;
+    return error.NotImplemented;
 }

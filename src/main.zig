@@ -3,6 +3,7 @@ const native_os = builtin.os.tag;
 const std = @import("std");
 const Yaml = @import("yaml").Yaml;
 const Workflow = @import("Workflow.zig");
+const Runner = @import("Runner.zig");
 
 var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
 
@@ -85,6 +86,12 @@ pub fn main() !void {
 
     var wf = try yaml.parse(gpa, Workflow);
     defer wf.deinit(gpa);
+
+    var runner = try gpa.create(Runner);
+    defer gpa.destroy(runner);
+
+    try runner.init(gpa, &wf);
+    defer runner.deinit(gpa);
 
     std.debug.print("{}\n", .{wf});
 }

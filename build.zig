@@ -9,6 +9,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const libxev = b.dependency("libxev", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
     const module = b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -17,6 +22,10 @@ pub fn build(b: *std.Build) void {
             .{
                 .name = "yaml",
                 .module = yaml.module("yaml"),
+            },
+            .{
+                .name = "xev",
+                .module = libxev.module("xev"),
             },
         },
     });

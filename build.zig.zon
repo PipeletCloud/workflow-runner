@@ -40,6 +40,10 @@
             .url = "https://github.com/PipeletCloud/zig-yaml/archive/9a6926443ad3879ac0c147c2c68b0d1dadb2135b.tar.gz",
             .hash = "zig_yaml-0.1.0-C1161piWAgDpeXlIH32h9rEXCzWyjGx0ypxR0XwdAf6Q",
         },
+        .libxev = .{
+            .url = "https://github.com/mitchellh/libxev/archive/5647630d7bff969414a0edc24c03c30aff34b101.tar.gz",
+            .hash = "libxev-0.0.0-86vtc4b1EgCl0Kvo2Ixmjfl5PgAaJmvCXRIn_n89nCaR",
+        },
     },
     .paths = .{
         "build.zig",
