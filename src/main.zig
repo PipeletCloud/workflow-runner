@@ -93,5 +93,5 @@ pub fn main() !void {
     try runner.init(gpa, &wf);
     defer runner.deinit(gpa);
 
-    std.debug.print("{}\n", .{wf});
+    try runner.loop.run(.until_done);
 }

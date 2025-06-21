@@ -11,8 +11,7 @@ pub const Output = struct {
 
 pub const Runner = struct {
     pub fn deinit(self: *Runner, alloc: std.mem.Allocator) void {
-        _ = self;
-        _ = alloc;
+        alloc.destroy(self);
     }
 };
 
@@ -27,7 +26,9 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
 
 pub fn createRunner(self: *const Self, alloc: std.mem.Allocator, loop: *xev.Loop) !*Runner {
     _ = self;
-    _ = alloc;
     _ = loop;
-    return error.NotImplemented;
+
+    const runner = try alloc.create(Runner);
+    errdefer alloc.destroy(runner);
+    return runner;
 }
