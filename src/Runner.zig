@@ -13,10 +13,14 @@ pub fn init(self: *Self, alloc: std.mem.Allocator, wf: *const Workflow) !void {
     self.loop = try xev.Loop.init(.{});
 
     for (wf.triggers, triggers) |wt, *t| {
-        t.* = try wt.createRunner(alloc, &self.loop);
+        t.* = try wt.createRunner(alloc);
     }
 
     self.triggers = triggers;
+}
+
+pub fn arm(self: *Self) void {
+    for (self.triggers) |*t| t.arm(&self.loop);
 }
 
 pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {

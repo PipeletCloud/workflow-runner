@@ -93,5 +93,13 @@ pub fn main() !void {
     try runner.init(gpa, &wf);
     defer runner.deinit(gpa);
 
-    try runner.loop.run(.until_done);
+    std.debug.print("{any}\n", .{runner.triggers});
+
+    while (true) {
+        runner.arm();
+        try runner.loop.run(.until_done);
+
+        // TODO: run the graph pipeline here
+        // TODO: run the writers
+    }
 }

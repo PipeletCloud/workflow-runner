@@ -10,6 +10,11 @@ pub const Output = struct {
 };
 
 pub const Runner = struct {
+    pub fn arm(self: *Runner, loop: *xev.Loop) void {
+        _ = self;
+        _ = loop;
+    }
+
     pub fn deinit(self: *Runner, alloc: std.mem.Allocator) void {
         alloc.destroy(self);
     }
@@ -24,9 +29,8 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     alloc.free(self.when);
 }
 
-pub fn createRunner(self: *const Self, alloc: std.mem.Allocator, loop: *xev.Loop) !*Runner {
+pub fn createRunner(self: *const Self, alloc: std.mem.Allocator) !*Runner {
     _ = self;
-    _ = loop;
 
     const runner = try alloc.create(Runner);
     errdefer alloc.destroy(runner);

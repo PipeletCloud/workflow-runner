@@ -23,6 +23,13 @@ pub const Trigger = union(enum) {
         cron: *Cron.Runner,
         http: Http.Runner,
 
+        pub fn arm(self: Trigger.Runner, loop: *xev.Loop) void {
+            return switch (self) {
+                .cron => |cron| cron.arm(loop),
+                .http => |*http| @constCast(http).arm(loop),
+            };
+        }
+
         pub fn deinit(self: Trigger.Runner, alloc: std.mem.Allocator) void {
             return switch (self) {
                 .cron => |cron| cron.deinit(alloc),
@@ -53,6 +60,13 @@ pub const Trigger = union(enum) {
             request: *Request.Runner,
             response: *Response.Runner,
 
+            pub fn arm(self: Http.Runner, loop: *xev.Loop) void {
+                return switch (self) {
+                    .request => |req| req.arm(loop),
+                    .response => |res| res.arm(loop),
+                };
+            }
+
             pub fn deinit(self: Http.Runner, alloc: std.mem.Allocator) void {
                 return switch (self) {
                     .request => |req| req.deinit(alloc),
@@ -71,10 +85,10 @@ pub const Trigger = union(enum) {
             };
         }
 
-        pub fn createRunner(self: Http, alloc: std.mem.Allocator, loop: *xev.Loop) !Http.Runner {
+        pub fn createRunner(self: Http, alloc: std.mem.Allocator) !Http.Runner {
             return switch (self) {
-                .request => |*req| .{ .request = try req.createRunner(alloc, loop) },
-                .response => |*res| .{ .response = try res.createRunner(alloc, loop) },
+                .request => |*req| .{ .request = try req.createRunner(alloc) },
+                .response => |*res| .{ .response = try res.createRunner(alloc) },
             };
         }
 
@@ -88,10 +102,10 @@ pub const Trigger = union(enum) {
         };
     }
 
-    pub fn createRunner(self: Trigger, alloc: std.mem.Allocator, loop: *xev.Loop) !Runner {
+    pub fn createRunner(self: Trigger, alloc: std.mem.Allocator) !Runner {
         return switch (self) {
-            .cron => |*cron| .{ .cron = try cron.createRunner(alloc, loop) },
-            .http => |*http| .{ .http = try http.createRunner(alloc, loop) },
+            .cron => |*cron| .{ .cron = try cron.createRunner(alloc) },
+            .http => |*http| .{ .http = try http.createRunner(alloc) },
         };
     }
 
