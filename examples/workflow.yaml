@@ -1,0 +1,12 @@
+name: Test
+
+triggers:
+  - cron:
+      when: "* * * * *"
+  - http:
+      request:
+        method: "GET"
+        url: "https://example.com"
+        when:
+          changed:
+            delay: 12000

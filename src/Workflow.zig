@@ -1,4 +1,5 @@
 const std = @import("std");
+const Yaml = @import("yaml").Yaml;
 const Self = @This();
 
 pub const Trigger = union(enum) {
@@ -6,7 +7,23 @@ pub const Trigger = union(enum) {
     http: Http,
 
     pub const Cron = @import("Workflow/Trigger/Cron.zig");
-    pub const Http = @import("Workflow/Trigger/Http.zig");
+
+    pub const Http = union(enum) {
+        request: Request,
+        response: Response,
+
+        pub const Request = @import("Workflow/Trigger/Http/Request.zig");
+        pub const Response = @import("Workflow/Trigger/Http/Response.zig");
+
+        pub fn deinit(self: Http, alloc: std.mem.Allocator) void {
+            return switch (self) {
+                .request => |*req| @constCast(req).deinit(alloc),
+                .response => |*res| @constCast(res).deinit(alloc),
+            };
+        }
+
+        pub const parseYaml = @import("yaml.zig").UnionEnum(Http);
+    };
 
     pub fn deinit(self: Trigger, alloc: std.mem.Allocator) void {
         return switch (self) {
@@ -14,6 +31,8 @@ pub const Trigger = union(enum) {
             .http => |*http| @constCast(http).deinit(alloc),
         };
     }
+
+    pub const parseYaml = @import("yaml.zig").UnionEnum(Trigger);
 };
 
 name: []const u8,
