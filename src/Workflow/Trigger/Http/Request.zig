@@ -1,5 +1,6 @@
 const std = @import("std");
 const xev = @import("xev");
+const Workflow = @import("../../../Workflow.zig");
 const Self = @This();
 
 pub const Output = struct {
@@ -9,6 +10,14 @@ pub const Output = struct {
 
     pub fn deinit(self: *Output, alloc: std.mem.Allocator) void {
         alloc.free(self.body);
+    }
+
+    pub fn dupe(self: *const Output, alloc: std.mem.Allocator) std.mem.Allocator.Error!Output {
+        return .{
+            .timestamp = self.timestamp,
+            .status = self.status,
+            .body = try alloc.dupe(u8, self.body),
+        };
     }
 
     pub fn equal(a: Output, b: Output) bool {
@@ -23,6 +32,7 @@ pub const Runner = struct {
     method: std.http.Method,
     last_output: ?Output,
     output: ?Output,
+    output_ptr: ?*?Workflow.Trigger.Output,
     when_changed: bool,
     client: std.http.Client,
     comp: xev.Completion,
@@ -62,7 +72,7 @@ pub const Runner = struct {
 
     fn doRun(self: *Runner) !bool {
         if (self.when_changed) {
-            const output = try self.fetch();
+            var output = try self.fetch();
             errdefer output.deinit(self.client.allocator);
 
             const is_equal = if (self.last_output) |last| last.equal(output) else false;
@@ -71,6 +81,10 @@ pub const Runner = struct {
 
             if (!is_equal) {
                 self.output = output;
+
+                if (self.output_ptr) |ptr| {
+                    ptr.* = .{ .http = .{ .request = try output.dupe(self.client.allocator) } };
+                }
                 return true;
             }
         }
@@ -129,7 +143,7 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     if (self.when) |when| when.deinit(alloc);
 }
 
-pub fn createRunner(self: *const Self, alloc: std.mem.Allocator) !*Runner {
+pub fn createRunner(self: *const Self, alloc: std.mem.Allocator, imap: *Workflow.InputMap) !*Runner {
     const runner = try alloc.create(Runner);
     errdefer alloc.destroy(runner);
 
@@ -138,6 +152,7 @@ pub fn createRunner(self: *const Self, alloc: std.mem.Allocator) !*Runner {
         .method = std.meta.stringToEnum(std.http.Method, self.method orelse "GET") orelse return error.InvalidEnum,
         .last_output = null,
         .output = null,
+        .output_ptr = if (self.id) |id| (try imap.getOrPutValue(id, null)).value_ptr else null,
         .when_changed = if (self.when) |when| when == .changed else false,
         .client = .{ .allocator = alloc },
         .comp = undefined,

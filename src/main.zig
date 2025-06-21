@@ -45,6 +45,7 @@ pub fn main() !void {
     const stderr = buffered_stderr.writer();
 
     var workflow_file: ?std.fs.File = null;
+    var once = false;
 
     while (args.next()) |arg| {
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
@@ -53,10 +54,14 @@ pub fn main() !void {
                 \\
                 \\Options:
                 \\  --help, -h  Shows usage
+                \\  --once, -o  Run the workflow once
                 \\
             , .{
                 argv0,
             });
+            return;
+        } else if (std.mem.eql(u8, arg, "--once") or std.mem.eql(u8, arg, "-o")) {
+            once = true;
         } else if (workflow_file == null and !std.mem.startsWith(u8, arg, "-")) {
             workflow_file = try openFile(arg, .{});
         } else {
@@ -101,5 +106,7 @@ pub fn main() !void {
 
         // TODO: run the graph pipeline here
         // TODO: run the writers
+
+        if (once) break;
     }
 }

@@ -1,5 +1,6 @@
 const std = @import("std");
 const xev = @import("xev");
+const Workflow = @import("../../../Workflow.zig");
 const Self = @This();
 
 pub const Output = struct {
@@ -67,8 +68,9 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     if (self.when) |when| when.deinit(alloc);
 }
 
-pub fn createRunner(self: *const Self, alloc: std.mem.Allocator) !*Runner {
+pub fn createRunner(self: *const Self, alloc: std.mem.Allocator, imap: *Workflow.InputMap) !*Runner {
     _ = self;
+    _ = imap;
 
     const runner = try alloc.create(Runner);
     errdefer alloc.destroy(runner);

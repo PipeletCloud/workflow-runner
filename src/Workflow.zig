@@ -3,6 +3,8 @@ const xev = @import("xev");
 const Yaml = @import("yaml").Yaml;
 const Self = @This();
 
+pub const InputMap = std.StringHashMap(?Trigger.Output);
+
 pub const Trigger = union(enum) {
     cron: Cron,
     http: Http,
@@ -85,10 +87,10 @@ pub const Trigger = union(enum) {
             };
         }
 
-        pub fn createRunner(self: Http, alloc: std.mem.Allocator) !Http.Runner {
+        pub fn createRunner(self: Http, alloc: std.mem.Allocator, imap: *InputMap) !Http.Runner {
             return switch (self) {
-                .request => |*req| .{ .request = try req.createRunner(alloc) },
-                .response => |*res| .{ .response = try res.createRunner(alloc) },
+                .request => |*req| .{ .request = try req.createRunner(alloc, imap) },
+                .response => |*res| .{ .response = try res.createRunner(alloc, imap) },
             };
         }
 
@@ -102,10 +104,10 @@ pub const Trigger = union(enum) {
         };
     }
 
-    pub fn createRunner(self: Trigger, alloc: std.mem.Allocator) !Runner {
+    pub fn createRunner(self: Trigger, alloc: std.mem.Allocator, imap: *InputMap) !Runner {
         return switch (self) {
-            .cron => |*cron| .{ .cron = try cron.createRunner(alloc) },
-            .http => |*http| .{ .http = try http.createRunner(alloc) },
+            .cron => |*cron| .{ .cron = try cron.createRunner(alloc, imap) },
+            .http => |*http| .{ .http = try http.createRunner(alloc, imap) },
         };
     }
 
