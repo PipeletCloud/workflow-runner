@@ -59,49 +59,26 @@ pub const Trigger = union(enum) {
     pub const parseYaml = @import("yaml.zig").UnionEnum(Trigger);
 };
 
-pub const Graph = union(enum) {
-    awk: Awk,
-    grep: Grep,
-    head: Head,
-    sed: Sed,
-    tail: Tail,
+pub const Graph = @import("Workflow/Graph.zig");
 
-    pub const Awk = @import("Workflow/Graph/Awk.zig");
-    pub const Grep = @import("Workflow/Graph/Grep.zig");
-    pub const Head = @import("Workflow/Graph/Head.zig");
-    pub const Sed = @import("Workflow/Graph/Sed.zig");
-    pub const Tail = @import("Workflow/Graph/Tail.zig");
+pub const Writer = union(enum) {
+    email: Email,
 
-    pub const Input = union(enum) {
-        trigger: []const u8,
-        step: *Graph,
+    pub const Email = @import("Workflow/Writer/Email.zig");
 
-        pub fn deinit(self: Input, alloc: std.mem.Allocator) void {
-            return switch (self) {
-                .trigger => |trigger| alloc.free(trigger),
-                .step => |step| step.deinit(alloc),
-            };
-        }
-
-        pub const parseYaml = @import("yaml.zig").UnionEnum(Input);
-    };
-
-    pub fn deinit(self: Graph, alloc: std.mem.Allocator) void {
+    pub fn deinit(self: Writer, alloc: std.mem.Allocator) void {
         return switch (self) {
-            .awk => |*awk| @constCast(awk).deinit(alloc),
-            .grep => |*grep| @constCast(grep).deinit(alloc),
-            .head => |*head| @constCast(head).deinit(alloc),
-            .sed => |*sed| @constCast(sed).deinit(alloc),
-            .tail => |*tail| @constCast(tail).deinit(alloc),
+            .email => |*email| @constCast(email).deinit(alloc),
         };
     }
 
-    pub const parseYaml = @import("yaml.zig").UnionEnum(Graph);
+    pub const parseYaml = @import("yaml.zig").UnionEnum(Writer);
 };
 
 name: []const u8,
 triggers: ?[]const Trigger = null,
-graph: ?[]const Graph = null,
+graph: ?[]const Graph.Toplevel = null,
+writers: ?[]const Writer = null,
 
 pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     alloc.free(self.name);
@@ -114,5 +91,10 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     if (self.graph) |graph| {
         for (graph) |elem| elem.deinit(alloc);
         alloc.free(graph);
+    }
+
+    if (self.writers) |writers| {
+        for (writers) |writer| writer.deinit(alloc);
+        alloc.free(writers);
     }
 }

@@ -1,8 +1,8 @@
 const std = @import("std");
-const Workflow = @import("../../Workflow.zig");
+const Graph = @import("../../Graph.zig");
 const Self = @This();
 
-input: Workflow.Graph.Input,
+input: Graph.Input,
 before: ?usize,
 after: ?usize,
 inverse: bool,

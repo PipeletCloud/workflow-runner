@@ -13,7 +13,14 @@ triggers:
             delay: 12000
 
 graph:
-  - awk:
-      input:
-        trigger: example_http
-      script: "{print}"
+  - id: formatted
+    step:
+      awk:
+        input:
+          trigger: example_http
+        script: "{print}"
+
+writers:
+  - email:
+      address: inquiry@midstall.com
+      template: "${graph.formatted}"
