@@ -9,6 +9,13 @@ pub const Output = struct {
     status: std.http.Status,
     body: []const u8,
 
+    pub fn get(self: *Output, alloc: std.mem.Allocator, key: []const u8) Workflow.GetOutputError![]const u8 {
+        if (std.mem.eql(u8, key, "timestamp")) return std.fmt.allocPrint(alloc, "{}", .{self.timestamp});
+        if (std.mem.eql(u8, key, "status")) return alloc.dupe(u8, @tagName(self.status));
+        if (std.mem.eql(u8, key, "body")) return alloc.dupe(u8, self.body);
+        return error.InvalidKey;
+    }
+
     pub fn deinit(self: *Output, alloc: std.mem.Allocator) void {
         alloc.free(self.body);
     }

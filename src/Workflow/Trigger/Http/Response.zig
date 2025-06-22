@@ -7,6 +7,13 @@ pub const Output = struct {
     target: []const u8,
     body: []const u8,
 
+    pub fn get(self: *Output, alloc: std.mem.Allocator, key: []const u8) Workflow.GetOutputError![]const u8 {
+        _ = self;
+        _ = alloc;
+        _ = key;
+        return error.InvalidKey;
+    }
+
     pub fn deinit(self: *Output, alloc: std.mem.Allocator) void {
         alloc.free(self.target);
         alloc.free(self.body);

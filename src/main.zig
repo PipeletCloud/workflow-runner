@@ -104,7 +104,7 @@ pub fn main() !void {
         runner.arm();
         try runner.loop.run(.until_done);
 
-        // TODO: run the graph pipeline here
+        try runner.runGraph(gpa, &wf);
         // TODO: run the writers
 
         if (once) break;

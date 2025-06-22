@@ -15,7 +15,9 @@ graph:
     step:
       awk:
         input:
-          trigger: example_http
+          trigger:
+            id: example_http
+            key: body
         script: "{print}"
 
 writers:

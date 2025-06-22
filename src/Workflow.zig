@@ -4,6 +4,11 @@ const Yaml = @import("yaml").Yaml;
 const Self = @This();
 
 pub const InputMap = std.StringHashMap(?Trigger.Output);
+pub const GraphMap = std.StringHashMap([]const u8);
+
+pub const GetOutputError = error {
+    InvalidKey,
+} || std.mem.Allocator.Error;
 
 pub const Trigger = union(enum) {
     cron: Cron,
@@ -12,6 +17,13 @@ pub const Trigger = union(enum) {
     pub const Output = union(enum) {
         cron: Cron.Output,
         http: Http.Output,
+
+        pub fn get(self: Trigger.Output, alloc: std.mem.Allocator, key: []const u8) GetOutputError![]const u8 {
+            return switch (self) {
+                .cron => |*cron| @constCast(cron).get(alloc, key),
+                .http => |*http| @constCast(http).get(alloc, key),
+            };
+        }
 
         pub fn deinit(self: Trigger.Output, alloc: std.mem.Allocator) void {
             return switch (self) {
@@ -49,6 +61,13 @@ pub const Trigger = union(enum) {
         pub const Output = union(enum) {
             request: Request.Output,
             response: Response.Output,
+
+            pub fn get(self: Http.Output, alloc: std.mem.Allocator, key: []const u8) GetOutputError![]const u8 {
+                return switch (self) {
+                    .request => |*req| @constCast(req).get(alloc, key),
+                    .response => |*res| @constCast(res).get(alloc, key),
+                };
+            }
 
             pub fn deinit(self: Http.Output, alloc: std.mem.Allocator) void {
                 return switch (self) {

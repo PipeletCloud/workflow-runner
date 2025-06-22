@@ -6,6 +6,7 @@ const Self = @This();
 loop: xev.Loop,
 triggers: []Workflow.Trigger.Runner,
 inputs: Workflow.InputMap,
+graph: Workflow.GraphMap,
 
 pub fn init(self: *Self, alloc: std.mem.Allocator, wf: *const Workflow) !void {
     const triggers = try alloc.alloc(Workflow.Trigger.Runner, wf.triggers.len);
@@ -16,6 +17,9 @@ pub fn init(self: *Self, alloc: std.mem.Allocator, wf: *const Workflow) !void {
 
     self.inputs = Workflow.InputMap.init(alloc);
     errdefer self.inputs.deinit();
+
+    self.graph = Workflow.GraphMap.init(alloc);
+    errdefer self.graph.deinit();
 
     for (wf.triggers, triggers) |wt, *t| {
         t.* = try wt.createRunner(alloc, &self.inputs);
@@ -28,15 +32,38 @@ pub fn arm(self: *Self) void {
     for (self.triggers) |*t| t.arm(&self.loop);
 }
 
+pub fn runGraph(self: *Self, alloc: std.mem.Allocator, wf: *const Workflow) !void {
+    for (wf.graph, 0..) |g, i| {
+        const id = if (g.id) |id| try alloc.dupe(u8, id) else try std.fmt.allocPrint(alloc, "{}", .{i});
+        errdefer alloc.free(id);
+
+        const result = try g.step.run(alloc, &self.inputs);
+        errdefer alloc.free(result);
+
+        try self.graph.put(id, result);
+    }
+}
+
 pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     for (self.triggers) |trigger| trigger.deinit(alloc);
     alloc.free(self.triggers);
 
-    var iter = self.inputs.valueIterator();
-    while (iter.next()) |op_val| {
-        if (op_val.*) |*val| val.deinit(self.inputs.allocator);
+    {
+        var iter = self.inputs.valueIterator();
+        while (iter.next()) |op_val| {
+            if (op_val.*) |*val| val.deinit(self.inputs.allocator);
+        }
+    }
+
+    {
+        var iter = self.graph.iterator();
+        while (iter.next()) |entry| {
+            alloc.free(entry.key_ptr.*);
+            alloc.free(entry.value_ptr.*);
+        }
     }
 
     self.inputs.deinit();
+    self.graph.deinit();
     self.loop.deinit();
 }

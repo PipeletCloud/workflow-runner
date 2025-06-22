@@ -5,6 +5,13 @@ const Cron = @import("../../Cron.zig");
 const Self = @This();
 
 pub const Output = struct {
+    pub fn get(self: *Output, alloc: std.mem.Allocator, key: []const u8) Workflow.GetOutputError![]const u8 {
+        _ = self;
+        _ = alloc;
+        _ = key;
+        return error.InvalidKey;
+    }
+
     pub fn deinit(self: *Output, alloc: std.mem.Allocator) void {
         _ = self;
         _ = alloc;

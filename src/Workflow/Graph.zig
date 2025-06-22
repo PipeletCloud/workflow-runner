@@ -1,4 +1,5 @@
 const std = @import("std");
+const Workflow = @import("../Workflow.zig");
 
 pub const Step = union(enum) {
     awk: Awk,
@@ -23,6 +24,16 @@ pub const Step = union(enum) {
         };
     }
 
+    pub fn run(self: Step, alloc: std.mem.Allocator, inputs: *Workflow.InputMap) ![]const u8 {
+        return switch (self) {
+            .awk => |*awk| @constCast(awk).run(alloc, inputs),
+            .grep => |*grep| @constCast(grep).run(alloc, inputs),
+            .head => |*head| @constCast(head).run(alloc, inputs),
+            .sed => |*sed| @constCast(sed).run(alloc, inputs),
+            .tail => |*tail| @constCast(tail).run(alloc, inputs),
+        };
+    }
+
     pub const parseYaml = @import("../yaml.zig").UnionEnum(Step);
 };
 
@@ -38,12 +49,29 @@ pub const Toplevel = struct {
 };
 
 pub const Input = union(enum) {
-    trigger: []const u8,
+    trigger: Trigger,
     step: *Step,
+
+    pub const Trigger = struct {
+        id: []const u8,
+        key: []const u8,
+
+        pub fn deinit(self: Trigger, alloc: std.mem.Allocator) void {
+            alloc.free(self.id);
+            alloc.free(self.key);
+        }
+    };
+
+    pub fn get(self: Input, alloc: std.mem.Allocator, inputs: *Workflow.InputMap) ![]const u8 {
+        return switch (self) {
+            .trigger => |trigger| (inputs.get(trigger.id) orelse error.InvalidId).get(alloc, trigger.key),
+            .step => |step| step.run(alloc, inputs),
+        };
+    }
 
     pub fn deinit(self: Input, alloc: std.mem.Allocator) void {
         return switch (self) {
-            .trigger => |trigger| alloc.free(trigger),
+            .trigger => |trigger| trigger.deinit(alloc),
             .step => |step| step.deinit(alloc),
         };
     }
