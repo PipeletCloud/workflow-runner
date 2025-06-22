@@ -1,6 +1,7 @@
 const std = @import("std");
 const xev = @import("xev");
 const Workflow = @import("../../../Workflow.zig");
+const Cron = @import("../../../Cron.zig");
 const Self = @This();
 
 pub const Output = struct {
@@ -34,17 +35,33 @@ pub const Runner = struct {
     output: ?Output,
     output_ptr: ?*?Workflow.Trigger.Output,
     when_changed: bool,
+    delay: Delay,
     client: std.http.Client,
     comp: xev.Completion,
 
+    pub const Delay = union(enum) {
+        cron: Cron,
+        value: u64,
+
+        pub fn getFutureTimestamp(self: Delay) u64 {
+            return switch (self) {
+                .cron => |c| c.getFutureTimestamp(),
+                .value => |v| v,
+            };
+        }
+    };
+
     pub fn arm(self: *Runner, loop: *xev.Loop) void {
-        // TODO: replace 10 with a value computed based on "when"
-        loop.timer(&self.comp, 10, null, Runner.run);
+        loop.timer(&self.comp, self.delay.getFutureTimestamp(), null, Runner.run);
     }
 
     pub fn deinit(self: *Runner, alloc: std.mem.Allocator) void {
         if (self.last_output) |*last_output| last_output.deinit(alloc);
         if (self.output) |*output| output.deinit(alloc);
+
+        if (self.delay == .cron) {
+            self.delay.cron.deinit(alloc);
+        }
 
         self.client.deinit();
         alloc.destroy(self);
@@ -87,9 +104,19 @@ pub const Runner = struct {
                 }
                 return true;
             }
+
+            return false;
         }
 
-        return false;
+        var output = try self.fetch();
+        errdefer output.deinit(self.client.allocator);
+
+        self.output = output;
+
+        if (self.output_ptr) |ptr| {
+            ptr.* = .{ .http = .{ .request = try output.dupe(self.client.allocator) } };
+        }
+        return true;
     }
 
     pub fn run(_: ?*anyopaque, _: *xev.Loop, c: *xev.Completion, _: xev.Result) xev.CallbackAction {
@@ -116,6 +143,13 @@ pub const When = union(enum) {
             };
         }
 
+        pub fn toDelay(self: Changed, alloc: std.mem.Allocator) !Runner.Delay {
+            return switch (self) {
+                .delay => |value| .{ .value = value },
+                .cron => |str| .{ .cron = try Cron.parse(alloc, str) },
+            };
+        }
+
         pub const parseYaml = @import("../../../yaml.zig").UnionEnum(Changed);
     };
 
@@ -123,6 +157,13 @@ pub const When = union(enum) {
         return switch (self) {
             .changed => |*changed| @constCast(changed).deinit(alloc),
             .cron => |cron| alloc.free(cron),
+        };
+    }
+
+    pub fn toDelay(self: When, alloc: std.mem.Allocator) !Runner.Delay {
+        return switch (self) {
+            .changed => |changed| try changed.toDelay(alloc),
+            .cron => |str| .{ .cron = try Cron.parse(alloc, str) },
         };
     }
 
@@ -154,6 +195,7 @@ pub fn createRunner(self: *const Self, alloc: std.mem.Allocator, imap: *Workflow
         .output = null,
         .output_ptr = if (self.id) |id| (try imap.getOrPutValue(id, null)).value_ptr else null,
         .when_changed = if (self.when) |when| when == .changed else false,
+        .delay = if (self.when) |when| try when.toDelay(alloc) else .{ .value = 1000 }, 
         .client = .{ .allocator = alloc },
         .comp = undefined,
     };
