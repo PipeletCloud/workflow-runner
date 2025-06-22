@@ -68,7 +68,7 @@ pub const Field = union(enum) {
             errdefer field.deinit(alloc);
 
             try list.append(field);
-            i += offset;
+            i += offset + 1;
         }
 
         return try list.toOwnedSlice();
@@ -85,30 +85,33 @@ pub const Field = union(enum) {
 
 minute: Field,
 hour: Field,
-month: Field,
 day: Field,
+month: Field,
+weekday: Field,
 
 pub fn parse(alloc: std.mem.Allocator, str: []const u8) !Self {
     const list = try Field.parseSet(alloc, str);
-    errdefer for (list) |f| f.deinit(alloc);
     defer alloc.free(list);
+    errdefer for (list) |f| f.deinit(alloc);
 
-    if (list.len < 4) return error.TooShort;
-    if (list.len > 4) return error.TooLong;
+    if (list.len < 5) return error.TooShort;
+    if (list.len > 5) return error.TooLong;
 
     return .{
         .minute = list[0],
         .hour = list[1],
         .month = list[2],
         .day = list[3],
+        .weekday = list[4],
     };
 }
 
 pub fn deinit(self: Self, alloc: std.mem.Allocator) void {
     self.minute.deinit(alloc);
     self.hour.deinit(alloc);
-    self.month.deinit(alloc);
     self.day.deinit(alloc);
+    self.month.deinit(alloc);
+    self.weekday.deinit(alloc);
 }
 
 pub fn getFutureTimestamp(self: Self) u64 {
