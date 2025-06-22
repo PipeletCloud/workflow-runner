@@ -1,6 +1,7 @@
 const std = @import("std");
 const xev = @import("xev");
 const Workflow = @import("../../Workflow.zig");
+const Cron = @import("../../Cron.zig");
 const Self = @This();
 
 pub const Output = struct {
@@ -11,13 +12,20 @@ pub const Output = struct {
 };
 
 pub const Runner = struct {
+    cron: Cron,
+    comp: xev.Completion,
+
     pub fn arm(self: *Runner, loop: *xev.Loop) void {
-        _ = self;
-        _ = loop;
+        loop.timer(&self.comp, self.cron.getFutureTimestamp(), null, Runner.run);
     }
 
     pub fn deinit(self: *Runner, alloc: std.mem.Allocator) void {
+        self.cron.deinit(alloc);
         alloc.destroy(self);
+    }
+
+    pub fn run(_: ?*anyopaque, _: *xev.Loop, _: *xev.Completion, _: xev.Result) xev.CallbackAction {
+        return .disarm;
     }
 };
 
@@ -31,10 +39,14 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
 }
 
 pub fn createRunner(self: *const Self, alloc: std.mem.Allocator, imap: *Workflow.InputMap) !*Runner {
-    _ = self;
     _ = imap;
 
     const runner = try alloc.create(Runner);
     errdefer alloc.destroy(runner);
+
+    runner.* = .{
+        .comp = undefined,
+        .cron = try Cron.parse(alloc, self.when),
+    };
     return runner;
 }
