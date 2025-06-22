@@ -24,7 +24,7 @@ pub const Step = union(enum) {
         };
     }
 
-    pub fn run(self: Step, alloc: std.mem.Allocator, inputs: *Workflow.InputMap) ![]const u8 {
+    pub fn run(self: Step, alloc: std.mem.Allocator, inputs: *Workflow.InputMap) anyerror![]const u8 {
         return switch (self) {
             .awk => |*awk| @constCast(awk).run(alloc, inputs),
             .grep => |*grep| @constCast(grep).run(alloc, inputs),
@@ -64,7 +64,7 @@ pub const Input = union(enum) {
 
     pub fn get(self: Input, alloc: std.mem.Allocator, inputs: *Workflow.InputMap) ![]const u8 {
         return switch (self) {
-            .trigger => |trigger| (inputs.get(trigger.id) orelse error.InvalidId).get(alloc, trigger.key),
+            .trigger => |trigger| ((inputs.get(trigger.id) orelse return error.InvalidId) orelse return error.TriggerMissingOutput).get(alloc, trigger.key),
             .step => |step| step.run(alloc, inputs),
         };
     }

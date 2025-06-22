@@ -98,8 +98,6 @@ pub fn main() !void {
     try runner.init(gpa, &wf);
     defer runner.deinit(gpa);
 
-    std.debug.print("{any}\n", .{runner.triggers});
-
     while (true) {
         runner.arm();
         try runner.loop.run(.until_done);
