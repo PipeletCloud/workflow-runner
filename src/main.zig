@@ -81,7 +81,7 @@ pub fn main() !void {
 
     const metadata = try workflow_file.?.metadata();
 
-    const wf_source = try workflow_file.?.reader().readAllAlloc(gpa, metadata.size());
+    const wf_source = try workflow_file.?.reader().readAllAlloc(gpa, @intCast(metadata.size()));
     defer gpa.free(wf_source);
 
     var yaml: Yaml = .{ .source = wf_source };
