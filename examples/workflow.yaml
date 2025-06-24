@@ -13,12 +13,12 @@ triggers:
 graph:
   - id: formatted
     step:
-      awk:
+      sed:
         input:
           trigger:
             id: example_http
             key: body
-        script: "{print}"
+        expression: "s/Example/elpmaxE/g"
 
 writers:
   - email:
