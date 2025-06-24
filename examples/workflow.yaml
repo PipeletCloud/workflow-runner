@@ -23,4 +23,4 @@ graph:
 writers:
   - email:
       address: inquiry@midstall.com
-      template: "${graph.formatted}"
+      template: "<%= read_graph('formatted') %>"

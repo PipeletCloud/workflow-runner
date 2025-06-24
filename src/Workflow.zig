@@ -160,6 +160,16 @@ pub const Writer = union(enum) {
 pub const Formatter = struct {
     imap: *InputMap,
     gmap: *GraphMap,
+
+    pub const ZtlFunctions = struct {
+        pub const read_graph = 1;
+    };
+
+    pub fn call(self: *const Formatter, vm: *ztl.VM(Formatter), func: ztl.Functions(Formatter), values: []ztl.Value) !ztl.Value {
+        return switch (func) {
+            .read_graph => vm.createValue(self.gmap.get(values[0].string)),
+        };
+    }
 };
 
 name: []const u8,
@@ -181,36 +191,17 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
 }
 
 pub fn format(alloc: std.mem.Allocator, src: []const u8, imap: *InputMap, gmap: *GraphMap) ![]const u8 {
-    _ = src;
-
     var template = ztl.Template(Formatter).init(alloc, .{
         .imap = imap,
         .gmap = gmap,
     });
     defer template.deinit();
 
-    var globals = std.ArrayList(ztl.Global).init(alloc);
-    defer {
-        for (globals.items) |item| alloc.free(item[0]);
-        globals.deinit();
-    }
-
-    {
-        var iter = gmap.iterator();
-        while (iter.next()) |entry| {
-            const key = try std.fmt.allocPrint(alloc, "graph.{s}", .{entry.key_ptr.*});
-            errdefer alloc.free(key);
-
-            try globals.append(.{
-                key,
-                .{ .string = entry.value_ptr.* },
-            });
-        }
-    }
+    try template.compile(src, .{});
 
     var output = std.ArrayList(u8).init(alloc);
     defer output.deinit();
 
-    try template.render(output.writer(), globals.items, .{});
+    try template.render(output.writer(), .{}, .{});
     return try output.toOwnedSlice();
 }
