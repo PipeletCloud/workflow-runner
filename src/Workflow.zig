@@ -1,6 +1,8 @@
 const std = @import("std");
 const xev = @import("xev");
 const Yaml = @import("yaml").Yaml;
+const ztl = @import("ztl");
+const Config = @import("Config.zig");
 const Self = @This();
 
 pub const InputMap = std.StringHashMap(?Trigger.Output);
@@ -146,7 +148,18 @@ pub const Writer = union(enum) {
         };
     }
 
+    pub fn run(self: Writer, alloc: std.mem.Allocator, config: *const Config, imap: *InputMap, gmap: *GraphMap) !void {
+        return switch (self) {
+            .email => |*email| @constCast(email).run(alloc, config, imap, gmap),
+        };
+    }
+
     pub const parseYaml = @import("yaml.zig").UnionEnum(Writer);
+};
+
+pub const Formatter = struct {
+    imap: *InputMap,
+    gmap: *GraphMap,
 };
 
 name: []const u8,
@@ -165,4 +178,39 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
 
     for (self.writers) |writer| writer.deinit(alloc);
     alloc.free(self.writers);
+}
+
+pub fn format(alloc: std.mem.Allocator, src: []const u8, imap: *InputMap, gmap: *GraphMap) ![]const u8 {
+    _ = src;
+
+    var template = ztl.Template(Formatter).init(alloc, .{
+        .imap = imap,
+        .gmap = gmap,
+    });
+    defer template.deinit();
+
+    var globals = std.ArrayList(ztl.Global).init(alloc);
+    defer {
+        for (globals.items) |item| alloc.free(item[0]);
+        globals.deinit();
+    }
+
+    {
+        var iter = gmap.iterator();
+        while (iter.next()) |entry| {
+            const key = try std.fmt.allocPrint(alloc, "graph.{s}", .{entry.key_ptr.*});
+            errdefer alloc.free(key);
+
+            try globals.append(.{
+                key,
+                .{ .string = entry.value_ptr.* },
+            });
+        }
+    }
+
+    var output = std.ArrayList(u8).init(alloc);
+    defer output.deinit();
+
+    try template.render(output.writer(), globals.items, .{});
+    return try output.toOwnedSlice();
 }

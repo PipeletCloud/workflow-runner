@@ -48,6 +48,10 @@
             .url = "https://github.com/karlseguin/smtp_client.zig/archive/79cd8d0500f1df16aaa1f018011615a132c309e6.tar.gz",
             .hash = "smtp_client-0.0.1-Vh9B1KhkAQD_dWR7LO1qdIby48SVfV_hLb067M-vj54l",
         },
+        .ztl = .{
+            .url = "https://github.com/karlseguin/ztl/archive/c2ef279cda843f865e41e0139c957afc25ddd70b.tar.gz",
+            .hash = "ztl-0.0.0-XMYgXAjJBACjad2q-qlRgusVcp6aG69Nfg_LSx14_4wq",
+        },
     },
     .paths = .{
         "build.zig",

@@ -19,6 +19,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const ztl = b.dependency("ztl", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
     const module = b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -35,6 +40,10 @@ pub fn build(b: *std.Build) void {
             .{
                 .name = "smtp_client",
                 .module = smtp_client.module("smtp_client"),
+            },
+            .{
+                .name = "ztl",
+                .module = ztl.module("ztl"),
             },
         },
     });

@@ -1,5 +1,6 @@
 const std = @import("std");
 const xev = @import("xev");
+const Config = @import("Config.zig");
 const Workflow = @import("Workflow.zig");
 const Self = @This();
 
@@ -41,6 +42,12 @@ pub fn runGraph(self: *Self, alloc: std.mem.Allocator, wf: *const Workflow) !voi
         errdefer alloc.free(result);
 
         try self.graph.put(id, result);
+    }
+}
+
+pub fn runWriters(self: *Self, alloc: std.mem.Allocator, config: *const Config, wf: *const Workflow) !void {
+    for (wf.writers) |w| {
+        try w.run(alloc, config, &self.inputs, &self.graph);
     }
 }
 

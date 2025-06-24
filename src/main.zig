@@ -98,7 +98,7 @@ pub fn main() !void {
         try runner.loop.run(.until_done);
 
         try runner.runGraph(gpa, &workflow.?);
-        // TODO: run the writers
+        try runner.runWriters(gpa, &config, &workflow.?);
 
         if (once) break;
     }
