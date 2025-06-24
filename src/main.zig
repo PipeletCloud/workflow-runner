@@ -2,18 +2,12 @@ const builtin = @import("builtin");
 const native_os = builtin.os.tag;
 const std = @import("std");
 const Yaml = @import("yaml").Yaml;
+const Config = @import("Config.zig");
 const Workflow = @import("Workflow.zig");
 const Runner = @import("Runner.zig");
+const utils = @import("utils.zig");
 
 var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
-
-fn openFile(path: []const u8, flags: std.fs.File.OpenFlags) std.fs.File.OpenError!std.fs.File {
-    if (std.fs.path.isAbsolute(path)) {
-        return std.fs.openFileAbsolute(path, flags);
-    }
-
-    return std.fs.cwd().openFile(path, flags);
-}
 
 pub fn main() !void {
     const gpa, const is_debug = gpa: {
@@ -44,8 +38,13 @@ pub fn main() !void {
 
     const stderr = buffered_stderr.writer();
 
-    var workflow_file: ?std.fs.File = null;
     var once = false;
+
+    var config: Config = .{};
+    defer config.deinit(gpa);
+
+    var workflow: ?Workflow = null;
+    defer if (workflow) |*wf| wf.deinit(gpa);
 
     while (args.next()) |arg| {
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
@@ -53,56 +52,52 @@ pub fn main() !void {
                 \\Usage: {s} [options...] FILE
                 \\
                 \\Options:
-                \\  --help, -h  Shows usage
-                \\  --once, -o  Run the workflow once
+                \\  --help, -h    Shows usage
+                \\  --config, -c  Specifies the path to the config file
+                \\  --once, -o    Run the workflow once
                 \\
             , .{
                 argv0,
             });
             return;
+        } else if (std.mem.startsWith(u8, arg, "--config") or std.mem.eql(u8, arg, "-c")) {
+            const value = if (std.mem.indexOf(u8, arg, "=")) |i| arg[(i + 1)..] else args.next() orelse return error.MissingArgument;
+
+            config = utils.importYaml(gpa, Config, value, .{}) catch |err| {
+                _ = stderr.print("Failed to open the config file \"{s}\": {}\n", .{value, err}) catch null;
+                return err;
+            };
         } else if (std.mem.eql(u8, arg, "--once") or std.mem.eql(u8, arg, "-o")) {
             once = true;
-        } else if (workflow_file == null and !std.mem.startsWith(u8, arg, "-")) {
-            workflow_file = try openFile(arg, .{});
+        } else if (workflow == null and !std.mem.startsWith(u8, arg, "-")) {
+            workflow = utils.importYaml(gpa, Workflow, arg, .{}) catch |err| {
+                _ = stderr.print("Failed to open the workflow file \"{s}\": {}\n", .{arg, err}) catch null;
+                return err;
+            };
         } else {
             try stderr.print("{s}: unknown argument \"{s}\"\n", .{argv0, arg});
             return error.UnknownArgument;
         }
     }
 
-    if (workflow_file == null) {
-        workflow_file = openFile("workflow.yaml", .{}) catch |err| {
+    if (workflow == null) {
+        workflow = utils.importYaml(gpa, Workflow, "workflow.yaml", .{}) catch |err| {
             _ = stderr.print("Failed to open the default workflow file \"workflow.yaml\": {}\n", .{err}) catch null;
             return err;
         };
     }
 
-    defer if (workflow_file) |wf| wf.close();
-
-    const metadata = try workflow_file.?.metadata();
-
-    const wf_source = try workflow_file.?.reader().readAllAlloc(gpa, @intCast(metadata.size()));
-    defer gpa.free(wf_source);
-
-    var yaml: Yaml = .{ .source = wf_source };
-    defer yaml.deinit(gpa);
-
-    try yaml.load(gpa);
-
-    var wf = try yaml.parse(gpa, Workflow);
-    defer wf.deinit(gpa);
-
     var runner = try gpa.create(Runner);
     defer gpa.destroy(runner);
 
-    try runner.init(gpa, &wf);
+    try runner.init(gpa, &workflow.?);
     defer runner.deinit(gpa);
 
     while (true) {
         runner.arm();
         try runner.loop.run(.until_done);
 
-        try runner.runGraph(gpa, &wf);
+        try runner.runGraph(gpa, &workflow.?);
         // TODO: run the writers
 
         if (once) break;

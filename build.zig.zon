@@ -44,6 +44,10 @@
             .url = "https://github.com/mitchellh/libxev/archive/5647630d7bff969414a0edc24c03c30aff34b101.tar.gz",
             .hash = "libxev-0.0.0-86vtc4b1EgCl0Kvo2Ixmjfl5PgAaJmvCXRIn_n89nCaR",
         },
+        .smtp_client = .{
+            .url = "https://github.com/karlseguin/smtp_client.zig/archive/79cd8d0500f1df16aaa1f018011615a132c309e6.tar.gz",
+            .hash = "smtp_client-0.0.1-Vh9B1KhkAQD_dWR7LO1qdIby48SVfV_hLb067M-vj54l",
+        },
     },
     .paths = .{
         "build.zig",
