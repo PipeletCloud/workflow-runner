@@ -139,18 +139,22 @@ pub const Graph = @import("Workflow/Graph.zig");
 
 pub const Writer = union(enum) {
     email: Email,
+    stdout: Stdout,
 
     pub const Email = @import("Workflow/Writer/Email.zig");
+    pub const Stdout = @import("Workflow/Writer/Stdout.zig");
 
     pub fn deinit(self: Writer, alloc: std.mem.Allocator) void {
         return switch (self) {
             .email => |*email| @constCast(email).deinit(alloc),
+            .stdout => |*stdout| @constCast(stdout).deinit(alloc),
         };
     }
 
     pub fn run(self: Writer, alloc: std.mem.Allocator, config: *const Config, imap: *InputMap, gmap: *GraphMap) !void {
         return switch (self) {
             .email => |*email| @constCast(email).run(alloc, config, imap, gmap),
+            .stdout => |*stdout| @constCast(stdout).run(alloc, config, imap, gmap),
         };
     }
 
