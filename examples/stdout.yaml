@@ -16,12 +16,12 @@ graph:
       sed:
         input:
           step:
-            tail:
+            sed:
               input:
                 trigger:
                   id: example_http
                   key: body
-              lines: 8
+              expression: "s/domain/monad/g"
         expression: "s/Example/elpmaxE/g"
 
 writers:
