@@ -24,13 +24,13 @@ pub const Step = union(enum) {
         };
     }
 
-    pub fn run(self: Step, alloc: std.mem.Allocator, inputs: *Workflow.InputMap) anyerror![]const u8 {
+    pub fn run(self: Step, alloc: std.mem.Allocator, inputs: *Workflow.InputMap, graph: *Workflow.GraphMap) anyerror![]const u8 {
         return switch (self) {
-            .awk => |*awk| @constCast(awk).run(alloc, inputs),
-            .grep => |*grep| @constCast(grep).run(alloc, inputs),
-            .head => |*head| @constCast(head).run(alloc, inputs),
-            .sed => |*sed| @constCast(sed).run(alloc, inputs),
-            .tail => |*tail| @constCast(tail).run(alloc, inputs),
+            .awk => |*awk| @constCast(awk).run(alloc, inputs, graph),
+            .grep => |*grep| @constCast(grep).run(alloc, inputs, graph),
+            .head => |*head| @constCast(head).run(alloc, inputs, graph),
+            .sed => |*sed| @constCast(sed).run(alloc, inputs, graph),
+            .tail => |*tail| @constCast(tail).run(alloc, inputs, graph),
         };
     }
 
@@ -51,6 +51,7 @@ pub const Toplevel = struct {
 pub const Input = union(enum) {
     trigger: Trigger,
     step: *Step,
+    ref_step: []const u8,
 
     pub const Trigger = struct {
         id: []const u8,
@@ -62,10 +63,11 @@ pub const Input = union(enum) {
         }
     };
 
-    pub fn get(self: Input, alloc: std.mem.Allocator, inputs: *Workflow.InputMap) ![]const u8 {
+    pub fn get(self: Input, alloc: std.mem.Allocator, inputs: *Workflow.InputMap, graph: *Workflow.GraphMap) ![]const u8 {
         return switch (self) {
             .trigger => |trigger| ((inputs.get(trigger.id) orelse return error.InvalidId) orelse return error.TriggerMissingOutput).get(alloc, trigger.key),
-            .step => |step| step.run(alloc, inputs),
+            .step => |step| step.run(alloc, inputs, graph),
+            .ref_step => |ref_step| alloc.dupe(u8, graph.get(ref_step) orelse return error.GraphMissingOutput),
         };
     }
 
@@ -73,6 +75,7 @@ pub const Input = union(enum) {
         return switch (self) {
             .trigger => |trigger| trigger.deinit(alloc),
             .step => |step| step.deinit(alloc),
+            .ref_step => |ref_step| alloc.free(ref_step),
         };
     }
 

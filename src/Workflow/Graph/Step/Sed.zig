@@ -10,8 +10,8 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     alloc.free(self.expression);
 }
 
-pub fn run(self: *Self, alloc: std.mem.Allocator, inputs: *Workflow.InputMap) ![]const u8 {
-    const input = try self.input.get(alloc, inputs);
+pub fn run(self: *Self, alloc: std.mem.Allocator, inputs: *Workflow.InputMap, graph: *Workflow.GraphMap) ![]const u8 {
+    const input = try self.input.get(alloc, inputs, graph);
     defer alloc.free(input);
 
     var child = std.process.Child.init(&.{"sed", "--", self.expression}, alloc);

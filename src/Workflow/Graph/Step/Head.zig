@@ -9,8 +9,8 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     self.input.deinit(alloc);
 }
 
-pub fn run(self: *Self, alloc: std.mem.Allocator, inputs: *Workflow.InputMap) ![]const u8 {
-    const input = try self.input.get(alloc, inputs);
+pub fn run(self: *Self, alloc: std.mem.Allocator, inputs: *Workflow.InputMap, graph: *Workflow.GraphMap) ![]const u8 {
+    const input = try self.input.get(alloc, inputs, graph);
     defer alloc.free(input);
 
     const lines = try std.fmt.allocPrint(alloc, "{}", .{self.lines});

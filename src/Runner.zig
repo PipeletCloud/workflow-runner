@@ -38,7 +38,7 @@ pub fn runGraph(self: *Self, alloc: std.mem.Allocator, wf: *const Workflow) !voi
         const id = if (g.id) |id| try alloc.dupe(u8, id) else try std.fmt.allocPrint(alloc, "{}", .{i});
         errdefer alloc.free(id);
 
-        const result = try g.step.run(alloc, &self.inputs);
+        const result = try g.step.run(alloc, &self.inputs, &self.graph);
         errdefer alloc.free(result);
 
         try self.graph.put(id, result);
