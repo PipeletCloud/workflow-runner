@@ -21,6 +21,11 @@ pub fn main() !void {
         _ = debug_allocator.deinit();
     };
 
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    defer arena.deinit();
+
+    const alloc = arena.allocator();
+
     var args = try std.process.argsWithAllocator(gpa);
     defer args.deinit();
 
@@ -44,7 +49,7 @@ pub fn main() !void {
     defer config.deinit(gpa);
 
     var workflow: ?Workflow = null;
-    defer if (workflow) |*wf| wf.deinit(gpa);
+    defer if (workflow) |*wf| wf.deinit(alloc);
 
     while (args.next()) |arg| {
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
@@ -63,14 +68,14 @@ pub fn main() !void {
         } else if (std.mem.startsWith(u8, arg, "--config") or std.mem.eql(u8, arg, "-c")) {
             const value = if (std.mem.indexOf(u8, arg, "=")) |i| arg[(i + 1)..] else args.next() orelse return error.MissingArgument;
 
-            config = utils.importYaml(gpa, Config, value, .{}) catch |err| {
+            config = utils.importYaml(alloc, Config, value, .{}) catch |err| {
                 _ = stderr.print("Failed to open the config file \"{s}\": {}\n", .{value, err}) catch null;
                 return err;
             };
         } else if (std.mem.eql(u8, arg, "--once") or std.mem.eql(u8, arg, "-o")) {
             once = true;
         } else if (workflow == null and !std.mem.startsWith(u8, arg, "-")) {
-            workflow = utils.importYaml(gpa, Workflow, arg, .{}) catch |err| {
+            workflow = utils.importYaml(alloc, Workflow, arg, .{}) catch |err| {
                 _ = stderr.print("Failed to open the workflow file \"{s}\": {}\n", .{arg, err}) catch null;
                 return err;
             };
@@ -81,7 +86,7 @@ pub fn main() !void {
     }
 
     if (workflow == null) {
-        workflow = utils.importYaml(gpa, Workflow, "workflow.yaml", .{}) catch |err| {
+        workflow = utils.importYaml(alloc, Workflow, "workflow.yaml", .{}) catch |err| {
             _ = stderr.print("Failed to open the default workflow file \"workflow.yaml\": {}\n", .{err}) catch null;
             return err;
         };
