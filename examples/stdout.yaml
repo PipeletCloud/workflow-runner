@@ -15,9 +15,13 @@ graph:
     step:
       sed:
         input:
-          trigger:
-            id: example_http
-            key: body
+          step:
+            tail:
+              input:
+                trigger:
+                  id: example_http
+                  key: body
+              lines: 8
         expression: "s/Example/elpmaxE/g"
 
 writers:

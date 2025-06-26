@@ -34,6 +34,10 @@ pub fn run(self: *Self, alloc: std.mem.Allocator, inputs: *Workflow.InputMap) ![
         .allocator = alloc,
     }, runThread, .{ &child.stdin, input });
 
+    errdefer {
+        _ = child.kill() catch {};
+    }
+
     try child.collectOutput(alloc, &stdout, &stderr, std.math.maxInt(u64));
 
     const term = try child.wait();
