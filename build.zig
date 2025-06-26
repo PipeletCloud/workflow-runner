@@ -53,5 +53,9 @@ pub fn build(b: *std.Build) void {
         .root_module = module,
     });
 
+    const run_step = b.step("run", "Run the application");
+    const run_cmd = b.addRunArtifact(exec);
+    run_step.dependOn(&run_cmd.step);
+
     b.installArtifact(exec);
 }
