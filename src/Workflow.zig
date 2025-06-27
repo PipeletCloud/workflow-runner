@@ -167,11 +167,20 @@ pub const Formatter = struct {
 
     pub const ZtlFunctions = struct {
         pub const read_graph = 1;
+        pub const read_input = 2;
     };
 
-    pub fn call(self: *const Formatter, vm: *ztl.VM(Formatter), func: ztl.Functions(Formatter), values: []ztl.Value) !ztl.Value {
+    pub fn call(self: *Formatter, vm: *ztl.VM(Formatter), func: ztl.Functions(Formatter), values: []ztl.Value) !ztl.Value {
         return switch (func) {
             .read_graph => vm.createValue(self.gmap.get(values[0].string)),
+            .read_input => vm.createValue(blk: {
+                if (self.imap.get(values[0].string)) |input_opt| {
+                    if (input_opt) |input| {
+                        break :blk try input.get(vm._allocator, values[1].string);
+                    }
+                }
+                break :blk null;
+            }),
         };
     }
 };
