@@ -1,5 +1,6 @@
 const std = @import("std");
 const smtp_client = @import("smtp_client");
+const OllamaClient = @import("ollama").Ollama;
 const Self = @This();
 
 pub const Smtp = struct {
@@ -38,8 +39,32 @@ pub const Smtp = struct {
     }
 };
 
+pub const Ollama = struct {
+    schema: ?[]const u8,
+    host: ?[]const u8,
+    port: ?u16,
+    default_model: ?[]const u8,
+
+    pub fn deinit(self: *Ollama, alloc: std.mem.Allocator) void {
+        if (self.schema) |schema| alloc.free(schema);
+        if (self.host) |host| alloc.free(host);
+        if (self.default_model) |default_model| alloc.free(default_model);
+    }
+
+    pub fn toOllama(self: *const Ollama, alloc: std.mem.Allocator) OllamaClient {
+        return .{
+            .allocator = alloc,
+            .schema = self.schema orelse "http",
+            .host = self.host orelse "localhost",
+            .port = self.port orelse 11434,
+        };
+    }
+};
+
 smtp: ?Smtp = null,
+ollama: ?Ollama = null,
 
 pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     if (self.smtp) |*s| s.deinit(alloc);
+    if (self.ollama) |*ollama| ollama.deinit(alloc);
 }

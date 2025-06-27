@@ -162,16 +162,39 @@ pub const Writer = union(enum) {
 };
 
 pub const Formatter = struct {
+    config: *const Config,
     imap: *InputMap,
     gmap: *GraphMap,
+    step_inputs: ?[]const Graph.Input,
 
     pub const ZtlFunctions = struct {
         pub const read_graph = 1;
+        pub const read_input = 2;
     };
 
-    pub fn call(self: *const Formatter, vm: *ztl.VM(Formatter), func: ztl.Functions(Formatter), values: []ztl.Value) !ztl.Value {
+    pub fn call(self: *Formatter, vm: *ztl.VM(Formatter), func: ztl.Functions(Formatter), values: []ztl.Value) !ztl.Value {
         return switch (func) {
             .read_graph => vm.createValue(self.gmap.get(values[0].string)),
+            .read_input => vm.createValue(blk: {
+                if (values[0] == .string) {
+                    if (self.imap.get(values[0].string)) |input_opt| {
+                        if (input_opt) |input| {
+                            break :blk try input.get(vm._allocator, values[1].string);
+                        }
+                    }
+                }
+
+                if (values[0] == .i64) {
+                    if (self.step_inputs) |inputs| {
+                        const i: usize = @intCast(values[0].i64);
+                        if (i >= inputs.len) break :blk null;
+
+                        const input = &inputs[i];
+                        break :blk try input.get(vm._allocator, self.config, self.imap, self.gmap);
+                    }
+                }
+                break :blk null;
+            }),
         };
     }
 };
@@ -194,10 +217,12 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     alloc.free(self.writers);
 }
 
-pub fn format(alloc: std.mem.Allocator, src: []const u8, imap: *InputMap, gmap: *GraphMap) ![]const u8 {
+pub fn format(alloc: std.mem.Allocator, src: []const u8, config: *const Config, imap: *InputMap, gmap: *GraphMap, step_inputs: ?[]const Graph.Input) ![]const u8 {
     var template = ztl.Template(Formatter).init(alloc, .{
+        .config = config,
         .imap = imap,
         .gmap = gmap,
+        .step_inputs = step_inputs,
     });
     defer template.deinit();
 

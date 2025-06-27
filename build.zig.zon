@@ -49,8 +49,12 @@
             .hash = "smtp_client-0.0.1-Vh9B1KhkAQD_dWR7LO1qdIby48SVfV_hLb067M-vj54l",
         },
         .ztl = .{
-            .url = "https://github.com/karlseguin/ztl/archive/c2ef279cda843f865e41e0139c957afc25ddd70b.tar.gz",
-            .hash = "ztl-0.0.0-XMYgXAjJBACjad2q-qlRgusVcp6aG69Nfg_LSx14_4wq",
+            .url = "https://github.com/PipeletCloud/ztl/archive/1eee71a9691c17888c334c1ee087ac014c05aacb.tar.gz",
+            .hash = "ztl-0.0.0-XMYgXOvIBABYVKB2H1T5yuUS61pN6MtRJwqR_7jGh81G",
+        },
+        .ollama = .{
+            .url = "https://github.com/dravenk/ollama-zig/archive/8c6d4ba251ab554402af7e25e9bb0b04ed780831.tar.gz",
+            .hash = "ollama-0.0.1-WEit4AtiAACDyxQnn7KgOboZHxnDROO2g3GzjahHClOl",
         },
     },
     .paths = .{

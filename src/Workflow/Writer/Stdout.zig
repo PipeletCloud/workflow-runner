@@ -10,8 +10,7 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
 }
 
 pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, imap: *Workflow.InputMap, gmap: *Workflow.GraphMap) !void {
-    _ = config;
-    const body = try Workflow.format(alloc, self.template, imap, gmap);
+    const body = try Workflow.format(alloc, self.template, config, imap, gmap, null);
     defer alloc.free(body);
 
     const stdout = std.io.getStdOut().writer();
