@@ -102,7 +102,7 @@ pub fn main() !void {
         runner.arm();
         try runner.loop.run(.until_done);
 
-        try runner.runGraph(gpa, &workflow.?);
+        try runner.runGraph(gpa, &config, &workflow.?);
         try runner.runWriters(gpa, &config, &workflow.?);
 
         if (once) break;

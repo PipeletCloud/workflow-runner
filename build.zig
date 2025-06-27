@@ -24,6 +24,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const ollama = b.dependency("ollama", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
     const module = b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -44,6 +49,10 @@ pub fn build(b: *std.Build) void {
             .{
                 .name = "ztl",
                 .module = ztl.module("ztl"),
+            },
+            .{
+                .name = "ollama",
+                .module = ollama.module("ollama"),
             },
         },
     });
