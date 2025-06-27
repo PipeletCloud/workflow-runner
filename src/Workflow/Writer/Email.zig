@@ -20,7 +20,7 @@ pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, imap: *
     const from = if (config_smtp.address) |addr| try alloc.dupe(u8, addr) else try std.fmt.allocPrint(alloc, "{s}@{s}", .{ config_smtp.username orelse "root", config_smtp.host });
     defer alloc.free(from);
 
-    const body = try Workflow.format(alloc, self.template, imap, gmap);
+    const body = try Workflow.format(alloc, self.template, config, imap, gmap, null);
     defer alloc.free(body);
 
     try smtp.send(.{

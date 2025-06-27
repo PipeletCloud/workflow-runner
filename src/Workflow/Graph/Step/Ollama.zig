@@ -4,10 +4,16 @@ const Workflow = @import("../../../Workflow.zig");
 const Ollama = @import("ollama").Ollama;
 const Self = @This();
 
+inputs: ?[]const Workflow.Graph.Input,
 model: ?[]const u8,
 prompt: []const u8,
 
 pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
+    if (self.inputs) |inputs| {
+        for (inputs) |input| input.deinit(alloc);
+        alloc.free(inputs);
+    }
+
     if (self.model) |model| alloc.free(model);
     alloc.free(self.prompt);
 }
@@ -16,7 +22,7 @@ pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, inputs:
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
 
-    const prompt = try Workflow.format(alloc, self.prompt, inputs, graph);
+    const prompt = try Workflow.format(alloc, self.prompt, config, inputs, graph, self.inputs);
     defer alloc.free(prompt);
 
     const model = (if (config.ollama) |ollama| ollama.default_model else self.model) orelse "llama3.2";
