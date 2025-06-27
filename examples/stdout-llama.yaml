@@ -1,0 +1,29 @@
+name: Test
+
+triggers:
+  - http:
+      request:
+        id: example_http
+        method: "GET"
+        url: "https://example.com"
+        when:
+          changed:
+            delay: 12
+
+graph:
+  - id: explained
+    step:
+      ollama:
+        prompt: "Please explain the website source code: <%= read_input(0, null) %>"
+        inputs:
+          - step:
+              sed:
+                input:
+                  trigger:
+                    id: example_http
+                    key: body
+                expression: "s/Example/elpmaxE/g"
+
+writers:
+  - stdout:
+      template: "<%= read_graph('explained') %>"
