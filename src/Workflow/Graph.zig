@@ -1,6 +1,7 @@
 const std = @import("std");
 const Config = @import("../Config.zig");
 const Workflow = @import("../Workflow.zig");
+const log = std.log.scoped(.@"workflow.graph");
 
 pub const Step = union(enum) {
     awk: Awk,
@@ -29,6 +30,7 @@ pub const Step = union(enum) {
     }
 
     pub fn run(self: Step, alloc: std.mem.Allocator, config: *const Config, inputs: *Workflow.InputMap, graph: *Workflow.GraphMap) anyerror![]const u8 {
+        log.debug("Running step {s}", .{@tagName(self)});
         return switch (self) {
             .awk => |*awk| @constCast(awk).run(alloc, config, inputs, graph),
             .grep => |*grep| @constCast(grep).run(alloc, config, inputs, graph),
