@@ -3,6 +3,7 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const debug = b.option(bool, "debug", "Build with debugging regardless of optimizations");
 
     const yaml = b.dependency("yaml", .{
         .target = target,
@@ -29,6 +30,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const options = b.addOptions();
+    options.addOption(?bool, "debug", debug);
+
     const module = b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -53,6 +57,10 @@ pub fn build(b: *std.Build) void {
             .{
                 .name = "ollama",
                 .module = ollama.module("ollama"),
+            },
+            .{
+                .name = "options",
+                .module = options.createModule(),
             },
         },
     });

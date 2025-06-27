@@ -2,18 +2,26 @@ const builtin = @import("builtin");
 const native_os = builtin.os.tag;
 const std = @import("std");
 const Yaml = @import("yaml").Yaml;
+const options = @import("options");
 const Config = @import("Config.zig");
 const Workflow = @import("Workflow.zig");
 const Runner = @import("Runner.zig");
 const utils = @import("utils.zig");
 
-var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
+pub const std_options: std.Options = .{
+    .log_level = if (options.debug) |is_debug| if (is_debug) .debug else .info else std.log.default_level,
+};
+
+var debug_allocator: std.heap.DebugAllocator(.{
+    .verbose_log = options.debug == true,
+}) = .init;
 
 pub fn main() !void {
     const gpa, const is_debug = gpa: {
         if (native_os == .wasi) break :gpa .{ std.heap.wasm_allocator, false };
+        if (options.debug orelse false) break :gpa .{ debug_allocator.allocator(), true };
         break :gpa switch (builtin.mode) {
-            .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
+            .Debug, .ReleaseSafe  => .{ debug_allocator.allocator(), true },
             .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
         };
     };

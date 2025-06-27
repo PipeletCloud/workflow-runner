@@ -2,6 +2,7 @@ const std = @import("std");
 const Config = @import("../../../Config.zig");
 const Workflow = @import("../../../Workflow.zig");
 const ollama = @import("ollama");
+const log = std.log.scoped(.@"workflow.graph.step.ollama");
 const Self = @This();
 
 pub const Image = struct {
@@ -95,11 +96,20 @@ pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, inputs:
         }
     }
 
-    var client: ollama.Ollama = if (config.ollama) |o| o.toOllama(arena.allocator()) else .{ .allocator = arena.allocator() };
+    var client = try alloc.create(ollama.Ollama);
+    defer alloc.destroy(client);
+
+    client.* = if (config.ollama) |o| o.toOllama(arena.allocator()) else .{ .allocator = arena.allocator() };
     defer client.deinit();
 
     var result = std.ArrayList(u8).init(alloc);
     defer result.deinit();
+
+    log.debug("Running generate request for ollama with model \"{s}\", prompt \"{s}\", and {} images", .{
+        model,
+        prompt,
+        images.items.len,
+    });
 
     const responses = try client.generate(.{
         .model = model,
@@ -108,6 +118,7 @@ pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, inputs:
     });
 
     while (try responses.next()) |resp| {
+        log.debug("Received response {}", .{resp});
         try result.appendSlice(resp.response);
     }
 
