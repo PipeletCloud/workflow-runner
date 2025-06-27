@@ -1,0 +1,27 @@
+name: Test
+
+triggers:
+  - http:
+      request:
+        id: github_logo
+        method: "GET"
+        url: "https://github.githubassets.com/favicons/favicon.png"
+        when:
+          changed:
+            delay: 12
+
+graph:
+  - id: explained
+    step:
+      ollama:
+        prompt: "Please explain the logo"
+        model: llama3.2-vision
+        images:
+          - source:
+              trigger:
+                id: github_logo
+                key: body
+
+writers:
+  - stdout:
+      template: "<%= read_graph('explained') %>"
