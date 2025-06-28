@@ -24,7 +24,7 @@ pub fn run(
     defer alloc.free(input);
 
     log.debug("Running \"sed -- {s}\"", .{self.expression});
-    var child = std.process.Child.init(&.{"sed", "--", self.expression}, alloc);
+    var child = std.process.Child.init(&.{ "sed", "--", self.expression }, alloc);
 
     child.stdin_behavior = .Pipe;
     child.stderr_behavior = .Pipe;

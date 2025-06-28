@@ -25,7 +25,7 @@ pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, imap: *
 
     try smtp.send(.{
         .from = .{ .address = from },
-        .to = &.{ .{ .address = self.address } },
+        .to = &.{.{ .address = self.address }},
         .subject = self.title orelse "Workflow Run",
         .html_body = body,
     }, config_smtp.toSmtpClientConfig(alloc));

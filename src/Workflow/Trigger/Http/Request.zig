@@ -202,7 +202,7 @@ pub fn createRunner(self: *const Self, alloc: std.mem.Allocator, imap: *Workflow
         .output = null,
         .output_ptr = if (self.id) |id| (try imap.getOrPutValue(id, null)).value_ptr else null,
         .when_changed = if (self.when) |when| when == .changed else false,
-        .delay = if (self.when) |when| try when.toDelay(alloc) else .{ .value = 1000 }, 
+        .delay = if (self.when) |when| try when.toDelay(alloc) else .{ .value = 1000 },
         .client = .{ .allocator = alloc },
         .comp = undefined,
     };

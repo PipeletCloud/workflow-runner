@@ -24,7 +24,7 @@ pub fn run(
     const lines = try std.fmt.allocPrint(alloc, "{}", .{self.lines});
     defer alloc.free(lines);
 
-    var child = std.process.Child.init(&.{"head", "--", lines}, alloc);
+    var child = std.process.Child.init(&.{ "head", "--", lines }, alloc);
 
     child.stdin_behavior = .Pipe;
     child.stderr_behavior = .Pipe;

@@ -9,7 +9,7 @@ pub const InputMap = std.StringHashMap(?Trigger.Output);
 pub const GraphMap = std.StringHashMap([]const u8);
 pub const SecretsMap = std.StringHashMap([]const u8);
 
-pub const GetOutputError = error {
+pub const GetOutputError = error{
     InvalidKey,
 } || std.mem.Allocator.Error;
 
