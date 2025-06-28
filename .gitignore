@@ -2,3 +2,5 @@
 zig-out/
 *.o
 config*.yaml
+result
+result-*
