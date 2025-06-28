@@ -13,9 +13,16 @@ pub const Image = struct {
         input: Workflow.Graph.Input,
         value: []const u8,
 
-        pub fn get(self: Source, alloc: std.mem.Allocator, config: *const Config, inputs: *Workflow.InputMap, graph: *Workflow.GraphMap) ![]const u8 {
+        pub fn get(
+            self: Source,
+            alloc: std.mem.Allocator,
+            config: *const Config,
+            inputs: *Workflow.InputMap,
+            graph: *Workflow.GraphMap,
+            secrets: *Workflow.SecretsMap,
+        ) ![]const u8 {
             return switch (self) {
-                .input => |*input| input.get(alloc, config, inputs, graph),
+                .input => |*input| input.get(alloc, config, inputs, graph, secrets),
                 .value => |value| alloc.dupe(u8, value),
             };
         }
@@ -33,8 +40,15 @@ pub const Image = struct {
         base64,
     };
 
-    pub fn toOllama(self: Image, alloc: std.mem.Allocator, config: *const Config, inputs: *Workflow.InputMap, graph: *Workflow.GraphMap) !ollama.types.Image {
-        const source = try self.source.get(alloc, config, inputs, graph);
+    pub fn toOllama(
+        self: Image,
+        alloc: std.mem.Allocator,
+        config: *const Config,
+        inputs: *Workflow.InputMap,
+        graph: *Workflow.GraphMap,
+        secrets: *Workflow.SecretsMap,
+    ) !ollama.types.Image {
+        const source = try self.source.get(alloc, config, inputs, graph, secrets);
         const kind = self.kind orelse .bytes;
         if (kind == .base64) return source;
 
@@ -72,11 +86,18 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     alloc.free(self.prompt);
 }
 
-pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, inputs: *Workflow.InputMap, graph: *Workflow.GraphMap) ![]const u8 {
+pub fn run(
+    self: *Self,
+    alloc: std.mem.Allocator,
+    config: *const Config,
+    inputs: *Workflow.InputMap,
+    graph: *Workflow.GraphMap,
+    secrets: *Workflow.SecretsMap,
+) ![]const u8 {
     var arena = std.heap.ArenaAllocator.init(alloc);
     defer arena.deinit();
 
-    const prompt = try Workflow.format(alloc, self.prompt, config, inputs, graph, self.inputs);
+    const prompt = try Workflow.format(alloc, self.prompt, config, inputs, graph, secrets, self.inputs);
     defer alloc.free(prompt);
 
     const model = (if (config.ollama) |o| o.default_model else self.model) orelse "llama3.2";
@@ -89,7 +110,7 @@ pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, inputs:
 
     if (self.images) |self_images| {
         for (self_images) |self_img| {
-            const img = try self_img.toOllama(alloc, config, inputs, graph);
+            const img = try self_img.toOllama(alloc, config, inputs, graph, secrets);
             errdefer alloc.free(img);
 
             try images.append(img);

@@ -29,15 +29,22 @@ pub const Step = union(enum) {
         };
     }
 
-    pub fn run(self: Step, alloc: std.mem.Allocator, config: *const Config, inputs: *Workflow.InputMap, graph: *Workflow.GraphMap) anyerror![]const u8 {
+    pub fn run(
+        self: Step,
+        alloc: std.mem.Allocator,
+        config: *const Config,
+        inputs: *Workflow.InputMap,
+        graph: *Workflow.GraphMap,
+        secrets: *Workflow.SecretsMap,
+    ) anyerror![]const u8 {
         log.debug("Running step {s}", .{@tagName(self)});
         return switch (self) {
-            .awk => |*awk| @constCast(awk).run(alloc, config, inputs, graph),
-            .grep => |*grep| @constCast(grep).run(alloc, config, inputs, graph),
-            .head => |*head| @constCast(head).run(alloc, config, inputs, graph),
-            .ollama => |*ollama| @constCast(ollama).run(alloc, config, inputs, graph),
-            .sed => |*sed| @constCast(sed).run(alloc, config, inputs, graph),
-            .tail => |*tail| @constCast(tail).run(alloc, config, inputs, graph),
+            .awk => |*awk| @constCast(awk).run(alloc, config, inputs, graph, secrets),
+            .grep => |*grep| @constCast(grep).run(alloc, config, inputs, graph, secrets),
+            .head => |*head| @constCast(head).run(alloc, config, inputs, graph, secrets),
+            .ollama => |*ollama| @constCast(ollama).run(alloc, config, inputs, graph, secrets),
+            .sed => |*sed| @constCast(sed).run(alloc, config, inputs, graph, secrets),
+            .tail => |*tail| @constCast(tail).run(alloc, config, inputs, graph, secrets),
         };
     }
 
@@ -59,6 +66,7 @@ pub const Input = union(enum) {
     trigger: Trigger,
     step: *Step,
     ref_step: []const u8,
+    secret: []const u8,
 
     pub const Trigger = struct {
         id: []const u8,
@@ -70,11 +78,19 @@ pub const Input = union(enum) {
         }
     };
 
-    pub fn get(self: Input, alloc: std.mem.Allocator, config: *const Config, inputs: *Workflow.InputMap, graph: *Workflow.GraphMap) ![]const u8 {
+    pub fn get(
+        self: Input,
+        alloc: std.mem.Allocator,
+        config: *const Config,
+        inputs: *Workflow.InputMap,
+        graph: *Workflow.GraphMap,
+        secrets: *Workflow.SecretsMap,
+    ) ![]const u8 {
         return switch (self) {
             .trigger => |trigger| ((inputs.get(trigger.id) orelse return error.InvalidId) orelse return error.TriggerMissingOutput).get(alloc, trigger.key),
-            .step => |step| step.run(alloc, config, inputs, graph),
+            .step => |step| step.run(alloc, config, inputs, graph, secrets),
             .ref_step => |ref_step| alloc.dupe(u8, graph.get(ref_step) orelse return error.GraphMissingOutput),
+            .secret => |secret| alloc.dupe(u8, secrets.get(secret) orelse return error.MissingSecret),
         };
     }
 
@@ -83,6 +99,7 @@ pub const Input = union(enum) {
             .trigger => |trigger| trigger.deinit(alloc),
             .step => |step| step.deinit(alloc),
             .ref_step => |ref_step| alloc.free(ref_step),
+            .secret => |secret| alloc.free(secret),
         };
     }
 

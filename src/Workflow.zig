@@ -7,6 +7,7 @@ const Self = @This();
 
 pub const InputMap = std.StringHashMap(?Trigger.Output);
 pub const GraphMap = std.StringHashMap([]const u8);
+pub const SecretsMap = std.StringHashMap([]const u8);
 
 pub const GetOutputError = error {
     InvalidKey,
@@ -151,10 +152,10 @@ pub const Writer = union(enum) {
         };
     }
 
-    pub fn run(self: Writer, alloc: std.mem.Allocator, config: *const Config, imap: *InputMap, gmap: *GraphMap) !void {
+    pub fn run(self: Writer, alloc: std.mem.Allocator, config: *const Config, imap: *InputMap, gmap: *GraphMap, secrets: *SecretsMap) !void {
         return switch (self) {
-            .email => |*email| @constCast(email).run(alloc, config, imap, gmap),
-            .stdout => |*stdout| @constCast(stdout).run(alloc, config, imap, gmap),
+            .email => |*email| @constCast(email).run(alloc, config, imap, gmap, secrets),
+            .stdout => |*stdout| @constCast(stdout).run(alloc, config, imap, gmap, secrets),
         };
     }
 
@@ -165,11 +166,13 @@ pub const Formatter = struct {
     config: *const Config,
     imap: *InputMap,
     gmap: *GraphMap,
+    secrets: *SecretsMap,
     step_inputs: ?[]const Graph.Input,
 
     pub const ZtlFunctions = struct {
         pub const read_graph = 1;
         pub const read_input = 2;
+        pub const read_secret = 1;
     };
 
     pub fn call(self: *Formatter, vm: *ztl.VM(Formatter), func: ztl.Functions(Formatter), values: []ztl.Value) !ztl.Value {
@@ -190,11 +193,12 @@ pub const Formatter = struct {
                         if (i >= inputs.len) break :blk null;
 
                         const input = &inputs[i];
-                        break :blk try input.get(vm._allocator, self.config, self.imap, self.gmap);
+                        break :blk try input.get(vm._allocator, self.config, self.imap, self.gmap, self.secrets);
                     }
                 }
                 break :blk null;
             }),
+            .read_secret => vm.createValue(self.secrets.get(values[0].string)),
         };
     }
 };
@@ -217,11 +221,20 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     alloc.free(self.writers);
 }
 
-pub fn format(alloc: std.mem.Allocator, src: []const u8, config: *const Config, imap: *InputMap, gmap: *GraphMap, step_inputs: ?[]const Graph.Input) ![]const u8 {
+pub fn format(
+    alloc: std.mem.Allocator,
+    src: []const u8,
+    config: *const Config,
+    imap: *InputMap,
+    gmap: *GraphMap,
+    secrets: *SecretsMap,
+    step_inputs: ?[]const Graph.Input,
+) ![]const u8 {
     var template = ztl.Template(Formatter).init(alloc, .{
         .config = config,
         .imap = imap,
         .gmap = gmap,
+        .secrets = secrets,
         .step_inputs = step_inputs,
     });
     defer template.deinit();
