@@ -5,6 +5,7 @@ const Yaml = @import("yaml").Yaml;
 const options = @import("options");
 const Config = @import("Config.zig");
 const Workflow = @import("Workflow.zig");
+const Server = @import("Server.zig");
 const Runner = @import("Runner.zig");
 const utils = @import("utils.zig");
 
@@ -55,8 +56,8 @@ pub fn main() !void {
 
     var once = false;
 
-    var config: Config = .{};
-    defer config.deinit(gpa);
+    var config: ?Config = null;
+    defer if (config) |*cfg| cfg.deinit(gpa);
 
     var workflow: ?Workflow = null;
     defer if (workflow) |*wf| wf.deinit(alloc);
@@ -121,6 +122,18 @@ pub fn main() !void {
         }
     }
 
+    if (config == null) {
+        if (utils.importYaml(alloc, Config, "config.yaml", .{}) catch |err| switch (err) {
+            error.FileNotFound => null,
+            else => {
+                _ = stderr.print("Failed to open the default config file \"config.yaml\": {}\n", .{err}) catch null;
+                return err;
+            },
+        }) |value| {
+            config = value;
+        }
+    }
+
     if (workflow == null) {
         workflow = utils.importYaml(alloc, Workflow, "workflow.yaml", .{}) catch |err| {
             _ = stderr.print("Failed to open the default workflow file \"workflow.yaml\": {}\n", .{err}) catch null;
@@ -147,18 +160,30 @@ pub fn main() !void {
         }
     }
 
+    var server = try gpa.create(Server);
+    defer gpa.destroy(server);
+
+    try server.init(gpa, if ((config orelse @as(Config, .{})).http_server) |hp| try hp.getAddress() else .initIp4(.{ 0, 0, 0, 0 }, 8080));
+    defer server.deinit(gpa);
+
     var runner = try gpa.create(Runner);
     defer gpa.destroy(runner);
 
-    try runner.init(gpa, &workflow.?);
+    try runner.init(gpa, &workflow.?, server);
     defer runner.deinit(gpa);
 
     while (true) {
+        std.log.debug("Rearming & waiting for triggers", .{});
+
         runner.arm();
         try runner.loop.run(.until_done);
 
-        try runner.runGraph(gpa, &config, &workflow.?, &secrets);
-        try runner.runWriters(gpa, &config, &workflow.?, &secrets);
+        std.log.debug("Triggers have completed, running graph", .{});
+
+        try runner.runGraph(gpa, &(config orelse .{}), &workflow.?, &secrets, server);
+
+        std.log.debug("Graph have completed, running writers", .{});
+        try runner.runWriters(gpa, &(config orelse .{}), &workflow.?, &secrets, server);
 
         if (once) break;
     }

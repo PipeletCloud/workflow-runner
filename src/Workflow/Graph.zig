@@ -1,6 +1,7 @@
 const std = @import("std");
 const Config = @import("../Config.zig");
 const Workflow = @import("../Workflow.zig");
+const Server = @import("../Server.zig");
 const log = std.log.scoped(.@"workflow.graph");
 
 pub const Step = union(enum) {
@@ -36,15 +37,16 @@ pub const Step = union(enum) {
         inputs: *Workflow.InputMap,
         graph: *Workflow.GraphMap,
         secrets: *Workflow.SecretsMap,
+        server: *Server,
     ) anyerror![]const u8 {
         log.debug("Running step {s}", .{@tagName(self)});
         return switch (self) {
-            .awk => |*awk| @constCast(awk).run(alloc, config, inputs, graph, secrets),
-            .grep => |*grep| @constCast(grep).run(alloc, config, inputs, graph, secrets),
-            .head => |*head| @constCast(head).run(alloc, config, inputs, graph, secrets),
-            .ollama => |*ollama| @constCast(ollama).run(alloc, config, inputs, graph, secrets),
-            .sed => |*sed| @constCast(sed).run(alloc, config, inputs, graph, secrets),
-            .tail => |*tail| @constCast(tail).run(alloc, config, inputs, graph, secrets),
+            .awk => |*awk| @constCast(awk).run(alloc, config, inputs, graph, secrets, server),
+            .grep => |*grep| @constCast(grep).run(alloc, config, inputs, graph, secrets, server),
+            .head => |*head| @constCast(head).run(alloc, config, inputs, graph, secrets, server),
+            .ollama => |*ollama| @constCast(ollama).run(alloc, config, inputs, graph, secrets, server),
+            .sed => |*sed| @constCast(sed).run(alloc, config, inputs, graph, secrets, server),
+            .tail => |*tail| @constCast(tail).run(alloc, config, inputs, graph, secrets, server),
         };
     }
 
@@ -85,10 +87,11 @@ pub const Input = union(enum) {
         inputs: *Workflow.InputMap,
         graph: *Workflow.GraphMap,
         secrets: *Workflow.SecretsMap,
+        server: *Server,
     ) ![]const u8 {
         return switch (self) {
             .trigger => |trigger| ((inputs.get(trigger.id) orelse return error.InvalidId) orelse return error.TriggerMissingOutput).get(alloc, trigger.key),
-            .step => |step| step.run(alloc, config, inputs, graph, secrets),
+            .step => |step| step.run(alloc, config, inputs, graph, secrets, server),
             .ref_step => |ref_step| alloc.dupe(u8, graph.get(ref_step) orelse return error.GraphMissingOutput),
             .secret => |secret| alloc.dupe(u8, secrets.get(secret) orelse return error.MissingSecret),
         };

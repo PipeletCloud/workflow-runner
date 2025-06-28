@@ -3,6 +3,7 @@ const xev = @import("xev");
 const Yaml = @import("yaml").Yaml;
 const ztl = @import("ztl");
 const Config = @import("Config.zig");
+const Server = @import("Server.zig");
 const Self = @This();
 
 pub const InputMap = std.StringHashMap(?Trigger.Output);
@@ -109,10 +110,10 @@ pub const Trigger = union(enum) {
             };
         }
 
-        pub fn createRunner(self: Http, alloc: std.mem.Allocator, imap: *InputMap) !Http.Runner {
+        pub fn createRunner(self: Http, alloc: std.mem.Allocator, imap: *InputMap, server: *Server) !Http.Runner {
             return switch (self) {
-                .request => |*req| .{ .request = try req.createRunner(alloc, imap) },
-                .response => |*res| .{ .response = try res.createRunner(alloc, imap) },
+                .request => |*req| .{ .request = try req.createRunner(alloc, imap, server) },
+                .response => |*res| .{ .response = try res.createRunner(alloc, imap, server) },
             };
         }
 
@@ -126,10 +127,10 @@ pub const Trigger = union(enum) {
         };
     }
 
-    pub fn createRunner(self: Trigger, alloc: std.mem.Allocator, imap: *InputMap) !Runner {
+    pub fn createRunner(self: Trigger, alloc: std.mem.Allocator, imap: *InputMap, server: *Server) !Runner {
         return switch (self) {
-            .cron => |*cron| .{ .cron = try cron.createRunner(alloc, imap) },
-            .http => |*http| .{ .http = try http.createRunner(alloc, imap) },
+            .cron => |*cron| .{ .cron = try cron.createRunner(alloc, imap, server) },
+            .http => |*http| .{ .http = try http.createRunner(alloc, imap, server) },
         };
     }
 
@@ -152,10 +153,10 @@ pub const Writer = union(enum) {
         };
     }
 
-    pub fn run(self: Writer, alloc: std.mem.Allocator, config: *const Config, imap: *InputMap, gmap: *GraphMap, secrets: *SecretsMap) !void {
+    pub fn run(self: Writer, alloc: std.mem.Allocator, config: *const Config, imap: *InputMap, gmap: *GraphMap, secrets: *SecretsMap, server: *Server) !void {
         return switch (self) {
-            .email => |*email| @constCast(email).run(alloc, config, imap, gmap, secrets),
-            .stdout => |*stdout| @constCast(stdout).run(alloc, config, imap, gmap, secrets),
+            .email => |*email| @constCast(email).run(alloc, config, imap, gmap, secrets, server),
+            .stdout => |*stdout| @constCast(stdout).run(alloc, config, imap, gmap, secrets, server),
         };
     }
 
@@ -167,6 +168,7 @@ pub const Formatter = struct {
     imap: *InputMap,
     gmap: *GraphMap,
     secrets: *SecretsMap,
+    server: *Server,
     step_inputs: ?[]const Graph.Input,
 
     pub const ZtlFunctions = struct {
@@ -193,7 +195,7 @@ pub const Formatter = struct {
                         if (i >= inputs.len) break :blk null;
 
                         const input = &inputs[i];
-                        break :blk try input.get(vm._allocator, self.config, self.imap, self.gmap, self.secrets);
+                        break :blk try input.get(vm._allocator, self.config, self.imap, self.gmap, self.secrets, self.server);
                     }
                 }
                 break :blk null;
@@ -205,7 +207,7 @@ pub const Formatter = struct {
 
 name: []const u8,
 triggers: []const Trigger,
-graph: []const Graph.Toplevel,
+graph: ?[]const Graph.Toplevel,
 writers: []const Writer,
 
 pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
@@ -214,8 +216,10 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     for (self.triggers) |trigger| trigger.deinit(alloc);
     alloc.free(self.triggers);
 
-    for (self.graph) |elem| elem.deinit(alloc);
-    alloc.free(self.graph);
+    if (self.graph) |graph| {
+        for (graph) |elem| elem.deinit(alloc);
+        alloc.free(graph);
+    }
 
     for (self.writers) |writer| writer.deinit(alloc);
     alloc.free(self.writers);
@@ -228,6 +232,7 @@ pub fn format(
     imap: *InputMap,
     gmap: *GraphMap,
     secrets: *SecretsMap,
+    server: *Server,
     step_inputs: ?[]const Graph.Input,
 ) ![]const u8 {
     var template = ztl.Template(Formatter).init(alloc, .{
@@ -235,6 +240,7 @@ pub fn format(
         .imap = imap,
         .gmap = gmap,
         .secrets = secrets,
+        .server = server,
         .step_inputs = step_inputs,
     });
     defer template.deinit();

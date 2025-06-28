@@ -1,0 +1,14 @@
+name: Test
+
+triggers:
+  - http:
+      response:
+        id: example_http
+        method: "GET"
+        endpoint: "/"
+        when:
+          delay: 12
+
+writers:
+  - stdout:
+      template: "<%= read_input('example_http', 'body') %>"
