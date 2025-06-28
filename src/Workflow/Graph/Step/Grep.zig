@@ -15,8 +15,15 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     alloc.free(self.expression);
 }
 
-pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, inputs: *Workflow.InputMap, graph: *Workflow.GraphMap) ![]const u8 {
-    const input = try self.input.get(alloc, config, inputs, graph);
+pub fn run(
+    self: *Self,
+    alloc: std.mem.Allocator,
+    config: *const Config,
+    inputs: *Workflow.InputMap,
+    graph: *Workflow.GraphMap,
+    secrets: *Workflow.SecretsMap,
+) ![]const u8 {
+    const input = try self.input.get(alloc, config, inputs, graph, secrets);
     defer alloc.free(input);
 
     var args = std.ArrayList([]const u8).init(alloc);

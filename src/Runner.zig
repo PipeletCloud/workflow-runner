@@ -33,21 +33,21 @@ pub fn arm(self: *Self) void {
     for (self.triggers) |*t| t.arm(&self.loop);
 }
 
-pub fn runGraph(self: *Self, alloc: std.mem.Allocator, config: *const Config, wf: *const Workflow) !void {
+pub fn runGraph(self: *Self, alloc: std.mem.Allocator, config: *const Config, wf: *const Workflow, secrets: *Workflow.SecretsMap) !void {
     for (wf.graph, 0..) |g, i| {
         const id = if (g.id) |id| try alloc.dupe(u8, id) else try std.fmt.allocPrint(alloc, "{}", .{i});
         errdefer alloc.free(id);
 
-        const result = try g.step.run(alloc, config, &self.inputs, &self.graph);
+        const result = try g.step.run(alloc, config, &self.inputs, &self.graph, secrets);
         errdefer alloc.free(result);
 
         try self.graph.put(id, result);
     }
 }
 
-pub fn runWriters(self: *Self, alloc: std.mem.Allocator, config: *const Config, wf: *const Workflow) !void {
+pub fn runWriters(self: *Self, alloc: std.mem.Allocator, config: *const Config, wf: *const Workflow, secrets: *Workflow.SecretsMap) !void {
     for (wf.writers) |w| {
-        try w.run(alloc, config, &self.inputs, &self.graph);
+        try w.run(alloc, config, &self.inputs, &self.graph, secrets);
     }
 }
 

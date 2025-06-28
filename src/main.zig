@@ -16,6 +16,8 @@ var debug_allocator: std.heap.DebugAllocator(.{
     .verbose_log = options.debug == true,
 }) = .init;
 
+const parseSecretsYaml = @import("yaml.zig").StringHashMap([]const u8);
+
 pub fn main() !void {
     const gpa, const is_debug = gpa: {
         if (native_os == .wasi) break :gpa .{ std.heap.wasm_allocator, false };
@@ -59,15 +61,26 @@ pub fn main() !void {
     var workflow: ?Workflow = null;
     defer if (workflow) |*wf| wf.deinit(alloc);
 
+    var secrets = std.StringHashMap([]const u8).init(gpa);
+    defer {
+        var iter = secrets.iterator();
+        while (iter.next()) |entry| {
+            gpa.free(entry.key_ptr.*);
+            gpa.free(entry.value_ptr.*);
+        }
+        secrets.deinit();
+    }
+
     while (args.next()) |arg| {
         if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) {
             try stdout.print(
                 \\Usage: {s} [options...] FILE
                 \\
                 \\Options:
-                \\  --help, -h    Shows usage
-                \\  --config, -c  Specifies the path to the config file
-                \\  --once, -o    Run the workflow once
+                \\  --help, -h     Shows usage
+                \\  --config, -c   Specifies the path to the config file
+                \\  --once, -o     Run the workflow once
+                \\  --secrets, -s  Loads secrets from a specific file
                 \\
             , .{
                 argv0,
@@ -82,6 +95,21 @@ pub fn main() !void {
             };
         } else if (std.mem.eql(u8, arg, "--once") or std.mem.eql(u8, arg, "-o")) {
             once = true;
+        } else if (std.mem.startsWith(u8, arg, "--secrets") or std.mem.eql(u8, arg, "-s")) {
+            const value = if (std.mem.indexOf(u8, arg, "=")) |i| arg[(i + 1)..] else args.next() orelse return error.MissingArgument;
+
+            const source = utils.readFile(gpa, value, .{}) catch |err| {
+                _ = stderr.print("Failed to open the secrets file \"{s}\": {}\n", .{value, err}) catch null;
+                return err;
+            };
+            defer gpa.free(source);
+
+            var yaml: Yaml = .{ .source = source };
+            defer yaml.deinit(gpa);
+
+            try yaml.load(gpa);
+
+            secrets.unmanaged = try parseSecretsYaml(yaml, gpa, yaml.docs.items[0]);
         } else if (workflow == null and !std.mem.startsWith(u8, arg, "-")) {
             workflow = utils.importYaml(alloc, Workflow, arg, .{}) catch |err| {
                 _ = stderr.print("Failed to open the workflow file \"{s}\": {}\n", .{arg, err}) catch null;
@@ -100,6 +128,25 @@ pub fn main() !void {
         };
     }
 
+    if (secrets.count() == 0) {
+        if (utils.readFile(gpa, "secrets.yaml", .{}) catch |err| switch (err) {
+            error.FileNotFound => null,
+            else => {
+                _ = stderr.print("Failed to open the default secrets file \"secrets.yaml\": {}\n", .{err}) catch null;
+                return err;
+            },
+        }) |source| {
+            defer gpa.free(source);
+
+            var yaml: Yaml = .{ .source = source };
+            defer yaml.deinit(gpa);
+
+            try yaml.load(gpa);
+
+            secrets.unmanaged = try parseSecretsYaml(yaml, gpa, yaml.docs.items[0]);
+        }
+    }
+
     var runner = try gpa.create(Runner);
     defer gpa.destroy(runner);
 
@@ -110,8 +157,8 @@ pub fn main() !void {
         runner.arm();
         try runner.loop.run(.until_done);
 
-        try runner.runGraph(gpa, &config, &workflow.?);
-        try runner.runWriters(gpa, &config, &workflow.?);
+        try runner.runGraph(gpa, &config, &workflow.?, &secrets);
+        try runner.runWriters(gpa, &config, &workflow.?, &secrets);
 
         if (once) break;
     }

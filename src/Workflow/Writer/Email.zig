@@ -14,13 +14,13 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     alloc.free(self.template);
 }
 
-pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, imap: *Workflow.InputMap, gmap: *Workflow.GraphMap) !void {
+pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, imap: *Workflow.InputMap, gmap: *Workflow.GraphMap, secrets: *Workflow.SecretsMap) !void {
     const config_smtp = config.smtp orelse return error.InvalidConfig;
 
     const from = if (config_smtp.address) |addr| try alloc.dupe(u8, addr) else try std.fmt.allocPrint(alloc, "{s}@{s}", .{ config_smtp.username orelse "root", config_smtp.host });
     defer alloc.free(from);
 
-    const body = try Workflow.format(alloc, self.template, config, imap, gmap, null);
+    const body = try Workflow.format(alloc, self.template, config, imap, gmap, secrets, null);
     defer alloc.free(body);
 
     try smtp.send(.{

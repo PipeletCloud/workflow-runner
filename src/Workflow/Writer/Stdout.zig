@@ -9,8 +9,8 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     alloc.free(self.template);
 }
 
-pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, imap: *Workflow.InputMap, gmap: *Workflow.GraphMap) !void {
-    const body = try Workflow.format(alloc, self.template, config, imap, gmap, null);
+pub fn run(self: *Self, alloc: std.mem.Allocator, config: *const Config, imap: *Workflow.InputMap, gmap: *Workflow.GraphMap, secrets: *Workflow.SecretsMap) !void {
+    const body = try Workflow.format(alloc, self.template, config, imap, gmap, secrets, null);
     defer alloc.free(body);
 
     const stdout = std.io.getStdOut().writer();

@@ -2,5 +2,6 @@
 zig-out/
 *.o
 config*.yaml
+secret*.yaml
 result
 result-*
