@@ -49,7 +49,7 @@
             .hash = "smtp_client-0.0.1-Vh9B1KhkAQD_dWR7LO1qdIby48SVfV_hLb067M-vj54l",
         },
         .ztl = .{
-            .url = "https://github.com/PipeletCloud/ztl/archive/1eee71a9691c17888c334c1ee087ac014c05aacb.tar.gz",
+            .url = "https://github.com/karlseguin/ztl/archive/22df73f9aec983648981df329bf9d087b6cec1d2.tar.gz",
             .hash = "ztl-0.0.0-XMYgXOvIBABYVKB2H1T5yuUS61pN6MtRJwqR_7jGh81G",
         },
         .ollama = .{
