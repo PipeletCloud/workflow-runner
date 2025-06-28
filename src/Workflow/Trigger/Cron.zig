@@ -1,6 +1,7 @@
 const std = @import("std");
 const xev = @import("xev");
 const Workflow = @import("../../Workflow.zig");
+const Server = @import("../../Server.zig");
 const Cron = @import("../../Cron.zig");
 const Self = @This();
 
@@ -45,8 +46,9 @@ pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     alloc.free(self.when);
 }
 
-pub fn createRunner(self: *const Self, alloc: std.mem.Allocator, imap: *Workflow.InputMap) !*Runner {
+pub fn createRunner(self: *const Self, alloc: std.mem.Allocator, imap: *Workflow.InputMap, server: *Server) !*Runner {
     _ = imap;
+    _ = server;
 
     const runner = try alloc.create(Runner);
     errdefer alloc.destroy(runner);

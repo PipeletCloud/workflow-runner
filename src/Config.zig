@@ -61,10 +61,46 @@ pub const Ollama = struct {
     }
 };
 
+pub const HttpServer = struct {
+    address: ?[]const u8,
+
+    pub fn deinit(self: *HttpServer, alloc: std.mem.Allocator) void {
+        _ = self;
+        _ = alloc;
+        // FIXME: invalid free
+        //if (self.address) |addr| alloc.free(addr);
+    }
+
+    pub fn getAddress(self: *const HttpServer) !std.net.Address {
+        const addr = self.address orelse "localhost:8080";
+
+        if (std.mem.startsWith(u8, addr, "unix:")) {
+            const path = addr[5..];
+            return .initUnix(path);
+        }
+
+        const split = std.mem.lastIndexOf(u8, addr, ":") orelse addr.len;
+
+        const name = blk: {
+            if (split == addr.len) break :blk addr;
+            break :blk addr[0..split];
+        };
+
+        const port: u16 = blk: {
+            if (split == addr.len) break :blk 8080;
+            break :blk try std.fmt.parseInt(u16, addr[(split + 1)..], 10);
+        };
+
+        return .parseIp(name, port);
+    }
+};
+
 smtp: ?Smtp = null,
 ollama: ?Ollama = null,
+http_server: ?HttpServer = null,
 
 pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     if (self.smtp) |*s| s.deinit(alloc);
     if (self.ollama) |*ollama| ollama.deinit(alloc);
+    if (self.http_server) |*h| h.deinit(alloc);
 }

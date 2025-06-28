@@ -1,5 +1,6 @@
 const std = @import("std");
 const Config = @import("../../../Config.zig");
+const Server = @import("../../../Server.zig");
 const Workflow = @import("../../../Workflow.zig");
 const Self = @This();
 
@@ -18,8 +19,9 @@ pub fn run(
     inputs: *Workflow.InputMap,
     graph: *Workflow.GraphMap,
     secrets: *Workflow.SecretsMap,
+    server: *Server,
 ) ![]const u8 {
-    const input = try self.input.get(alloc, config, inputs, graph, secrets);
+    const input = try self.input.get(alloc, config, inputs, graph, secrets, server);
     defer alloc.free(input);
 
     var child = std.process.Child.init(&.{ "awk", "--", self.script }, alloc);
