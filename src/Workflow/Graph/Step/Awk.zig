@@ -22,7 +22,7 @@ pub fn run(
     const input = try self.input.get(alloc, config, inputs, graph, secrets);
     defer alloc.free(input);
 
-    var child = std.process.Child.init(&.{"awk", "--", self.script}, alloc);
+    var child = std.process.Child.init(&.{ "awk", "--", self.script }, alloc);
 
     child.stdin_behavior = .Pipe;
     child.stderr_behavior = .Pipe;

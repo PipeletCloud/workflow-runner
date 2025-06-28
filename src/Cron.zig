@@ -53,7 +53,7 @@ pub const Field = union(enum) {
             return .{ slice.len, .{ .set = try list.toOwnedSlice() } };
         }
 
-        return .{ slice.len, .{ 
+        return .{ slice.len, .{
             .number = try std.fmt.parseInt(u6, slice, 10),
         } };
     }

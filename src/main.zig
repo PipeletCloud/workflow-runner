@@ -23,7 +23,7 @@ pub fn main() !void {
         if (native_os == .wasi) break :gpa .{ std.heap.wasm_allocator, false };
         if (options.debug orelse false) break :gpa .{ debug_allocator.allocator(), true };
         break :gpa switch (builtin.mode) {
-            .Debug, .ReleaseSafe  => .{ debug_allocator.allocator(), true },
+            .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
             .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
         };
     };
@@ -90,7 +90,7 @@ pub fn main() !void {
             const value = if (std.mem.indexOf(u8, arg, "=")) |i| arg[(i + 1)..] else args.next() orelse return error.MissingArgument;
 
             config = utils.importYaml(alloc, Config, value, .{}) catch |err| {
-                _ = stderr.print("Failed to open the config file \"{s}\": {}\n", .{value, err}) catch null;
+                _ = stderr.print("Failed to open the config file \"{s}\": {}\n", .{ value, err }) catch null;
                 return err;
             };
         } else if (std.mem.eql(u8, arg, "--once") or std.mem.eql(u8, arg, "-o")) {
@@ -99,7 +99,7 @@ pub fn main() !void {
             const value = if (std.mem.indexOf(u8, arg, "=")) |i| arg[(i + 1)..] else args.next() orelse return error.MissingArgument;
 
             const source = utils.readFile(gpa, value, .{}) catch |err| {
-                _ = stderr.print("Failed to open the secrets file \"{s}\": {}\n", .{value, err}) catch null;
+                _ = stderr.print("Failed to open the secrets file \"{s}\": {}\n", .{ value, err }) catch null;
                 return err;
             };
             defer gpa.free(source);
@@ -112,11 +112,11 @@ pub fn main() !void {
             secrets.unmanaged = try parseSecretsYaml(yaml, gpa, yaml.docs.items[0]);
         } else if (workflow == null and !std.mem.startsWith(u8, arg, "-")) {
             workflow = utils.importYaml(alloc, Workflow, arg, .{}) catch |err| {
-                _ = stderr.print("Failed to open the workflow file \"{s}\": {}\n", .{arg, err}) catch null;
+                _ = stderr.print("Failed to open the workflow file \"{s}\": {}\n", .{ arg, err }) catch null;
                 return err;
             };
         } else {
-            try stderr.print("{s}: unknown argument \"{s}\"\n", .{argv0, arg});
+            try stderr.print("{s}: unknown argument \"{s}\"\n", .{ argv0, arg });
             return error.UnknownArgument;
         }
     }
