@@ -53,7 +53,7 @@
             .hash = "ztl-0.0.0-XMYgXOvIBABYVKB2H1T5yuUS61pN6MtRJwqR_7jGh81G",
         },
         .ollama = .{
-            .url = "https://github.com/PipeletCloud/ollama-zig/archive/10071bb962fbad6b2a3d256e2ab3f4a09fa932eb.tar.gz",
+            .url = "https://github.com/dravenk/ollama-zig/archive/9719ebf9e1ad9cfdcb5c03a6cbb8f42ef8aca438.tar.gz",
             .hash = "ollama-0.0.1-WEit4ONhAADyDY15J6J9sqQfbcVmN4EaIEDIph5NjCOJ",
         },
     },
