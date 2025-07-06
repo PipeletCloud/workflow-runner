@@ -14,16 +14,6 @@ pub const Smtp = struct {
     message_id_host: ?[]const u8 = null,
     address: ?[]const u8 = null,
 
-    pub fn deinit(self: *Smtp, alloc: std.mem.Allocator) void {
-        alloc.free(self.host);
-
-        if (self.username) |username| alloc.free(username);
-        if (self.password) |password| alloc.free(password);
-        if (self.local_name) |local_name| alloc.free(local_name);
-        if (self.message_id_host) |message_id_host| alloc.free(message_id_host);
-        if (self.address) |address| alloc.free(address);
-    }
-
     pub fn toSmtpClientConfig(self: *const Smtp, alloc: std.mem.Allocator) smtp_client.Config {
         return .{
             .port = self.port orelse 25,
@@ -45,12 +35,6 @@ pub const Ollama = struct {
     port: ?u16,
     default_model: ?[]const u8,
 
-    pub fn deinit(self: *Ollama, alloc: std.mem.Allocator) void {
-        if (self.schema) |schema| alloc.free(schema);
-        if (self.host) |host| alloc.free(host);
-        if (self.default_model) |default_model| alloc.free(default_model);
-    }
-
     pub fn toOllama(self: *const Ollama, alloc: std.mem.Allocator) OllamaClient {
         return .{
             .allocator = alloc,
@@ -63,13 +47,6 @@ pub const Ollama = struct {
 
 pub const HttpServer = struct {
     address: ?[]const u8,
-
-    pub fn deinit(self: *HttpServer, alloc: std.mem.Allocator) void {
-        _ = self;
-        _ = alloc;
-        // FIXME: invalid free
-        //if (self.address) |addr| alloc.free(addr);
-    }
 
     pub fn getAddress(self: *const HttpServer) !std.net.Address {
         const addr = self.address orelse "localhost:8080";
@@ -98,9 +75,3 @@ pub const HttpServer = struct {
 smtp: ?Smtp = null,
 ollama: ?Ollama = null,
 http_server: ?HttpServer = null,
-
-pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
-    if (self.smtp) |*s| s.deinit(alloc);
-    if (self.ollama) |*ollama| ollama.deinit(alloc);
-    if (self.http_server) |*h| h.deinit(alloc);
-}

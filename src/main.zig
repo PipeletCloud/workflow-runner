@@ -57,7 +57,6 @@ pub fn main() !void {
     var once = false;
 
     var config: ?Config = null;
-    defer if (config) |*cfg| cfg.deinit(gpa);
 
     var workflow: ?Workflow = null;
     defer if (workflow) |*wf| wf.deinit(alloc);
