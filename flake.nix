@@ -59,7 +59,7 @@
                   pname
                   version
                   ;
-                hash = "sha256-VbVHoyCHxLFlETbvMo+rSL8INI0e27BOQuyv2Zq4CkA=";
+                hash = "sha256-z3h4bvYX40nVRgzU3jZ2Vw92Y87eDXqdEvNgLJwPM1s=";
               };
 
               postUnpack = ''

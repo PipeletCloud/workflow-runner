@@ -44,9 +44,16 @@ pub fn init(self: *Self, alloc: std.mem.Allocator, addr: std.net.Address) !void 
 
 pub fn deinit(self: *Self, alloc: std.mem.Allocator) void {
     self.loop.stop();
-    self.server.deinit();
+
+    const thread = std.Thread.spawn(.{
+        .allocator = alloc,
+    }, runWakeup, .{self}) catch |err| std.debug.panic("Failed to spawn wakeup thread: {}", .{err});
+
     self.thread.join();
+    thread.join();
+
     self.clients.deinit();
+    self.server.deinit();
 
     {
         var iter = self.resp.iterator();
@@ -110,4 +117,39 @@ fn loopAccept(_: ?*anyopaque, _: *xev.Loop, c: *xev.Completion, r: xev.Result) x
 fn runThread(self: *Self) void {
     log.debug("Starting server on {}", .{self.address});
     self.loop.run(.until_done) catch |err| log.err("Failed to run event loop: {}", .{err});
+}
+
+fn runWakeup(self: *Self) void {
+    const alloc = self.clients.allocator;
+
+    const host_with_port = std.fmt.allocPrint(alloc, "{}", .{self.server.listen_address}) catch |err| {
+        log.err("Failed to allocate string: {}", .{err});
+        return;
+    };
+    defer alloc.free(host_with_port);
+
+    const host_port_index = std.mem.lastIndexOf(u8, host_with_port, ":");
+
+    const uri: std.Uri = .{
+        .scheme = "http",
+        .host = .{ .raw = host_with_port[0..(host_port_index orelse host_with_port.len)] },
+        .port = if (host_port_index) |i| std.fmt.parseInt(u16, host_with_port[(i + 1)..], 10) catch |err| {
+            log.err("Failed to parse int: {}", .{err});
+            return;
+        } else null,
+    };
+
+    var client: std.http.Client = .{ .allocator = alloc };
+    defer client.deinit();
+
+    var server_header_buffer: [1024]u8 = undefined;
+
+    _ = client.fetch(.{
+        .method = .GET,
+        .location = .{ .uri = uri },
+        .server_header_buffer = &server_header_buffer,
+    }) catch |err| {
+        log.err("Failed to connect to HTTP server: {}", .{err});
+        return;
+    };
 }
